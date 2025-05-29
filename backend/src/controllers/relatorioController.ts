@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pedido } from '../models/Pedido';
-import Representante from '../models/representante';
+import Representante from '../models/Representante';
 
 // Vendas por representante/mês
 export const vendasPorRepresentanteMes = async (req: Request, res: Response) => {

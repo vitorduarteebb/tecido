@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pedido } from '../models/Pedido';
 import mongoose from 'mongoose';
-import Representante from '../models/representante';
+import Representante from '../models/Representante';
 
 export const pedidoController = {
   criar: async (req: Request, res: Response) => {

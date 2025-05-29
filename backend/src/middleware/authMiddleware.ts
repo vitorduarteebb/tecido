@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { UserRole } from '../types';
 import Admin from '../models/Admin';
-import Representante from '../models/representante';
+import Representante from '../models/Representante';
 import { Cliente } from '../models/Cliente';
 import { Model } from 'mongoose';
 

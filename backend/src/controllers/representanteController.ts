@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import Representante from '../models/representante';
+import Representante from '../models/Representante';
 import { Cliente } from '../models/Cliente';
 
 export const representanteController = {
