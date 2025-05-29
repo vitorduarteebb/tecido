@@ -15,13 +15,11 @@ import {
   InputAdornment,
   Card,
   CardMedia,
-  Divider,
   Stepper,
   Step,
   StepLabel,
   StepContent,
   Alert,
-  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -111,7 +109,7 @@ const CadastroProduto: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...(prev[parent as keyof typeof prev] as Record<string, unknown>),
+          ...((prev[parent as keyof typeof prev] as Record<string, unknown>) || {}),
           [child]: value
         }
       }));
@@ -130,7 +128,7 @@ const CadastroProduto: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...(prev[parent as keyof typeof prev] as Record<string, unknown>),
+          ...((prev[parent as keyof typeof prev] as Record<string, unknown>) || {}),
           [child]: value
         }
       }));

@@ -199,13 +199,13 @@ const ListaPedidos: React.FC = () => {
             ) : pedidos.length === 0 ? (
               <TableRow><TableCell colSpan={7}>Nenhum pedido encontrado.</TableCell></TableRow>
             ) : (
-              pedidos.map((pedido) => {
+              pedidos.map((pedido: any) => {
                 const pedidoId = pedido.id || pedido._id;
                 const clienteNome = typeof pedido.cliente === 'string'
                   ? pedido.cliente
                   : pedido.cliente && (pedido.cliente.razaoSocial || pedido.cliente.nomeFantasia || pedido.cliente.nome || 'Sem nome');
                 const dataPedido = pedido.dataCriacao || pedido.data || '-';
-                const valorTotal = pedido.itens?.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0) || 0;
+                const valorTotal = pedido.itens?.reduce((acc: number, item: any) => acc + (item.quantidade * item.valorUnitario), 0) || 0;
                 return (
                   <TableRow key={pedidoId}>
                     <TableCell>{pedidoId?.slice ? pedidoId.slice(-6).toUpperCase() : pedidoId}</TableCell>

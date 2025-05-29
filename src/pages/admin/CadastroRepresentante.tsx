@@ -93,6 +93,11 @@ const CadastroRepresentante: React.FC = () => {
       }
       const { confirmarSenha, ...rest } = formData;
       let dadosParaEnvio: Record<string, any> = { ...rest };
+      if (!dadosParaEnvio.email) dadosParaEnvio.email = '';
+      if (!dadosParaEnvio.status) dadosParaEnvio.status = 'ativo';
+      if (!dadosParaEnvio.nome) dadosParaEnvio.nome = '';
+      if (!dadosParaEnvio.telefone) dadosParaEnvio.telefone = '';
+      if (!dadosParaEnvio.regiao) dadosParaEnvio.regiao = '';
       if (!showPasswordFields) {
         delete dadosParaEnvio.senha;
       }

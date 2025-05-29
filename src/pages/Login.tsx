@@ -30,8 +30,6 @@ interface FormData {
 }
 
 const Login = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   

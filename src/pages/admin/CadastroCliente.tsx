@@ -16,7 +16,6 @@ import {
   MenuItem,
   InputAdornment,
   IconButton,
-  FormHelperText,
   Alert,
   Snackbar,
   CircularProgress,
@@ -199,8 +198,7 @@ const CadastroCliente = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...(parent === 'endereco' ? prev.endereco :
-              parent === 'credenciais' ? prev.credenciais : {}),
+          ...((parent === 'endereco' ? prev.endereco : parent === 'credenciais' ? prev.credenciais : {}) || {}),
           [child]: value
         }
       }));
@@ -221,8 +219,7 @@ const CadastroCliente = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...(parent === 'endereco' ? prev.endereco :
-              parent === 'credenciais' ? prev.credenciais : {}),
+          ...((parent === 'endereco' ? prev.endereco : parent === 'credenciais' ? prev.credenciais : {}) || {}),
           [child]: value
         }
       }));
@@ -761,7 +758,7 @@ const CadastroCliente = () => {
       <Paper className="p-6">
         <form onSubmit={handleSubmit}>
           <Stepper activeStep={activeStep} orientation="vertical">
-            {steps.map((step, index) => (
+            {steps.map((step) => (
               <Step key={step.label}>
                 <StepLabel>{step.label}</StepLabel>
                 <StepContent>

@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   table: {
-    display: 'table',
+    display: 'table' as any,
     width: '100%',
     marginBottom: 15,
   },

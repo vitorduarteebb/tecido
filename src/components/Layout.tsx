@@ -168,7 +168,7 @@ const Layout = () => {
   useEffect(() => {
     if (userRole === 'representante' && user?.id) {
       orcamentoService.listarPorRepresentante().then(orcamentos => {
-        setOrcamentosPendentes(orcamentos.filter(o => o.status === 'pendente').length);
+        setOrcamentosPendentes(orcamentos.filter((o: any) => o.status === 'pendente').length);
       });
     }
   }, [userRole, user]);

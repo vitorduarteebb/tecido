@@ -7,7 +7,6 @@ import {
   CircularProgress,
   Alert,
   Grid,
-  Divider,
   Chip,
   Box
 } from '@mui/material';
@@ -17,23 +16,12 @@ import {
   Block as BlockIcon,
   Business as BusinessIcon,
   Email as EmailIcon,
-  Phone as PhoneIcon,
   LocationOn as LocationOnIcon,
   AttachMoney as AttachMoneyIcon,
   Payment as PaymentIcon
 } from '@mui/icons-material';
 import { clienteService } from '../../services/clienteService';
 import { Cliente } from '../../types';
-
-interface Endereco {
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-}
 
 const DetalhesCliente: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -135,6 +123,7 @@ const DetalhesCliente: React.FC = () => {
     );
   }
 
+  
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
