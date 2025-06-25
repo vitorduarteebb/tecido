@@ -74,36 +74,39 @@ export const representanteController = {
         });
       }
 
-      // Hash da senha
+      // Hash da senha - garantindo que não seja undefined
+      const senhaParaHash = String(senha || '');
       const salt = await bcrypt.genSalt(10);
-      const senhaHash = await bcrypt.hash(senha, salt);
+      const senhaHash = await bcrypt.hash(senhaParaHash, salt);
 
-      // Prepara os dados para salvar
-      const dadosRepresentante = {
+      // Criar representante
+      const novoRepresentante = new Representante({
         nome: nome.trim(),
-        email: email.trim(),
-        telefone: telefone ? telefone.trim() : '',
-        regiao: regiao ? regiao.trim() : '',
+        email: email.trim().toLowerCase(),
+        telefone: telefone?.trim() || '',
+        regiao: regiao?.trim() || '',
         senha: senhaHash,
-        comissao: comissao ? Number(comissao) : 0,
+        comissao: comissao || 0,
         status: 'Ativo'
-      };
+      });
 
-      const novoRepresentante = new Representante(dadosRepresentante);
       await novoRepresentante.save();
 
-      // Retorna o representante sem a senha
-      const { senha: _, ...representanteSemSenha } = novoRepresentante.toObject();
-      res.status(201).json({
+      // Retorna sucesso sem a senha
+      const representanteSemSenha = novoRepresentante.toObject();
+      delete representanteSemSenha.senha;
+
+      return res.status(201).json({
         success: true,
+        message: 'Representante criado com sucesso',
         data: representanteSemSenha
       });
+
     } catch (error) {
       console.error('Erro ao criar representante:', error);
-      res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        message: 'Erro ao criar representante',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        message: 'Erro interno do servidor'
       });
     }
   },
