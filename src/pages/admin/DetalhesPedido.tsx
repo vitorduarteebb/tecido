@@ -26,14 +26,6 @@ const statusColors: Record<string, any> = {
   'Finalizado': 'success',
 };
 
-const statusFlow = [
-  'Em Separação',
-  'Faturado',
-  'Enviado',
-  'Aguardando Estoque',
-  'Finalizado',
-];
-
 interface PedidoComHistorico extends Pedido {
   historicoAlteracoes?: any[];
   status?: string;

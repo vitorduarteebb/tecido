@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
   Typography,
   Table,
   TableBody,
@@ -9,26 +8,24 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
+  CircularProgress,
   IconButton,
-  Button,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
+  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Stack,
-  Grid,
+  Chip,
+  Stack
 } from '@mui/material';
 import {
+  Visibility as ViewIcon,
   Edit as EditIcon,
-  PictureAsPdf as PdfIcon,
-  Upload as UploadIcon,
-  Description as DescriptionIcon,
   Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 import { formatarMoeda } from '../../utils/format';
@@ -104,7 +101,7 @@ const ListaPedidos: React.FC = () => {
   const handleSalvarStatus = async () => {
     if (pedidoSelecionado && novoStatus) {
       try {
-        await pedidoService.atualizarStatus(pedidoSelecionado.id || pedidoSelecionado._id, novoStatus);
+        await pedidoService.atualizarStatus(pedidoSelecionado.id || pedidoSelecionado._id || '', novoStatus);
         setPedidos(pedidos => pedidos.map(p => (p.id === pedidoSelecionado.id || p._id === pedidoSelecionado._id) ? { ...p, status: novoStatus } : p));
         enqueueSnackbar('Status atualizado com sucesso!', { variant: 'success' });
         setDialogoStatus(false);
@@ -160,7 +157,7 @@ const ListaPedidos: React.FC = () => {
             disabled={loading}
             title="Gerar PDF do Pedido"
           >
-            <PdfIcon />
+            <ReceiptIcon />
           </IconButton>
         )}
       </PDFDownloadLink>
@@ -219,7 +216,7 @@ const ListaPedidos: React.FC = () => {
                     <TableCell>
                       <Stack direction="row" spacing={1} justifyContent="center">
                         <IconButton color="primary" title="Ver detalhes" onClick={() => navigate(`/admin/pedidos/${pedidoId}`)}>
-                          <DescriptionIcon />
+                          <ViewIcon />
                         </IconButton>
                         {gerarPDF(pedido)}
                         <IconButton
@@ -227,7 +224,7 @@ const ListaPedidos: React.FC = () => {
                           onClick={() => abrirDialogoDocumentos(pedido)}
                           title="Gerenciar Documentos"
                         >
-                          <DescriptionIcon />
+                          <ReceiptIcon />
                         </IconButton>
                       </Stack>
                     </TableCell>
@@ -285,7 +282,7 @@ const ListaPedidos: React.FC = () => {
                     <>
                       <Typography>{pedidoSelecionado.boleto}</Typography>
                       <IconButton color="primary" size="small">
-                        <PdfIcon />
+                        <ReceiptIcon />
                       </IconButton>
                     </>
                   ) : (
@@ -320,7 +317,7 @@ const ListaPedidos: React.FC = () => {
                     <>
                       <Typography>{pedidoSelecionado.notaFiscal}</Typography>
                       <IconButton color="primary" size="small">
-                        <PdfIcon />
+                        <ReceiptIcon />
                       </IconButton>
                     </>
                   ) : (

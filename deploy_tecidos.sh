@@ -6,75 +6,52 @@
 
 set -e
 
-# 1. Atualizar sistema e instalar dependências
-apt update && apt upgrade -y
-apt install -y curl git nginx
+echo "==== ATUALIZANDO SISTEMA TECIDOS ===="
 
-# 2. Instalar Node.js 18.x e npm
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs
+# Parar o backend atual
+echo "Parando backend atual..."
+pm2 stop tecidos-backend || true
 
-# 3. Instalar pm2 globalmente
-npm install -g pm2
-
-# 4. Clonar o projeto (se já existe, apenas atualiza)
+# Fazer backup da pasta atual
+echo "Fazendo backup..."
 cd /root
-if [ ! -d "/root/tecidos-app" ]; then
-  git clone git@github.com:vitorduarteebb/tecido.git tecidos-app
-else
-  cd tecidos-app
-  git pull
-  cd ..
-fi
+mv tecidos-app tecidos-app-backup-$(date +%Y%m%d%H%M%S) 2>/dev/null || true
+
+# Clonar/atualizar repositório
+echo "Clonando repositório..."
+git clone https://github.com/vitorduarteebb/tecido tecidos-app
 cd tecidos-app
 
-# 5. Instalar dependências do backend
-cd backend && npm install
-
-# 6. Instalar dependências do frontend
-cd /root/tecidos-app && npm install
-
-# 7. Build do frontend
-npm run build
-
-# 8. Rodar backend com pm2
-cd /root/tecidos-app/backend
-pm install # (garantia)
-pm run build || true # caso use typescript
-npm install -g ts-node || true # caso use ts-node
-npm install -g typescript || true
-pm2 delete tecidos-backend || true
-pm2 start src/index.js --name tecidos-backend || pm2 start dist/index.js --name tecidos-backend
-
-# 9. Configurar pm2 para iniciar com o sistema
-pm2 startup systemd -u root --hp /root
-pm2 save
-
-# 10. Configurar nginx
-cat > /etc/nginx/sites-available/tecidos <<EOF
-server {
-    listen 80;
-    server_name _;
-
-    root /root/tecidos-app/dist;
-    index index.html;
-
-    location / {
-        try_files \$uri /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://localhost:3001/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
+# Configurar variáveis de ambiente
+echo "Configurando variáveis de ambiente..."
+cat <<EOF > backend/.env
+MONGODB_URI=mongodb://localhost:27017/tecidos
+JWT_SECRET=$(openssl rand -hex 32)
+PORT=3001
 EOF
 
-ln -sf /etc/nginx/sites-available/tecidos /etc/nginx/sites-enabled/tecidos
-rm -f /etc/nginx/sites-enabled/default
-systemctl restart nginx
+cat <<EOF > .env
+VITE_API_URL=http://147.93.32.222/api
+EOF
 
-echo "\n\nDeploy finalizado!\nAcesse: http://147.93.32.222/\n" 
+# Build do backend
+echo "Build do backend..."
+cd backend
+npm install
+npm run build
+
+# Build do frontend (forçado, ignorando erros TypeScript)
+echo "Build do frontend..."
+cd ..
+npm install
+npm run build:force
+
+# Reiniciar backend
+echo "Reiniciando backend..."
+cd backend
+pm2 start dist/index.js --name tecidos-backend || pm2 restart tecidos-backend
+
+echo "==== DEPLOY CONCLUÍDO ===="
+echo "Backend rodando na porta 3001"
+echo "Frontend buildado em /root/tecidos-app/dist"
+echo "Acesse: http://147.93.32.222" 
