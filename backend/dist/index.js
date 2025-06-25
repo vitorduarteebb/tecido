@@ -4,21 +4,42 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const mongoose_1 = __importDefault(require("mongoose"));
 const cors_1 = __importDefault(require("cors"));
-const config_1 = require("./config");
-const representanteRoutes_1 = __importDefault(require("./routes/representanteRoutes"));
+const database_1 = require("./config/database");
+const routes_1 = __importDefault(require("./routes"));
+const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
-// Middlewares
-app.use((0, cors_1.default)());
+// CORS configuration
+app.use((0, cors_1.default)({
+    origin: ['http://localhost:5174', 'http://localhost:5175'], // Aceita ambas as portas
+    credentials: true, // Required for cookies, authorization headers with HTTPS
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+// Middleware
 app.use(express_1.default.json());
-// Conexão com o MongoDB
-mongoose_1.default.connect(config_1.config.mongoUri)
-    .then(() => console.log('Conectado ao MongoDB'))
-    .catch((error) => console.error('Erro ao conectar ao MongoDB:', error));
-// Rotas
-app.use('/api/representantes', representanteRoutes_1.default);
-// Inicialização do servidor
-app.listen(config_1.config.port, () => {
-    console.log(`Servidor rodando na porta ${config_1.config.port}`);
+// Routes
+app.use('/api', routes_1.default); // Add /api prefix to match frontend expectations
+app.use('/uploads', express_1.default.static(path_1.default.resolve(__dirname, '../uploads')));
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Erro interno do servidor',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
+// Connect to database and start server
+const startServer = async () => {
+    try {
+        await (0, database_1.connectDB)();
+        app.listen(database_1.config.port, () => {
+            console.log(`Server running on port ${database_1.config.port}`);
+        });
+    }
+    catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+startServer();

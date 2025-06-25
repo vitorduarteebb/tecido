@@ -6,21 +6,66 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("../config");
+const types_1 = require("../types");
+const Admin_1 = __importDefault(require("../models/Admin"));
+const Representante_1 = __importDefault(require("../models/Representante"));
+const Cliente_1 = require("../models/Cliente");
 const authMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        console.log('[authMiddleware] Header Authorization recebido:', authHeader);
         if (!authHeader) {
             return res.status(401).json({ message: 'Token não fornecido' });
         }
         const [, token] = authHeader.split(' ');
         try {
             const decoded = jsonwebtoken_1.default.verify(token, config_1.config.jwtSecret);
-            req.userId = decoded.id;
-            req.userRole = decoded.role;
-            return next();
+            // Seleciona o modelo correto baseado na role
+            let UserModel;
+            if (decoded.role === types_1.UserRole.CLIENTE) {
+                // Busca o cliente pelo campo usuario
+                const cliente = await Cliente_1.Cliente.findOne({ usuario: decoded.id }).exec();
+                if (!cliente) {
+                    return res.status(401).json({ message: 'Usuário não encontrado' });
+                }
+                req.userId = cliente._id;
+                req.userRole = decoded.role;
+                req.user = {
+                    id: cliente._id,
+                    role: decoded.role
+                };
+                return next();
+            }
+            else {
+                switch (decoded.role) {
+                    case types_1.UserRole.ADMINISTRADOR:
+                        UserModel = Admin_1.default;
+                        break;
+                    case types_1.UserRole.REPRESENTANTE:
+                        UserModel = Representante_1.default;
+                        break;
+                    default:
+                        return res.status(401).json({ message: 'Role inválida no token' });
+                }
+                // Verifica se o usuário ainda existe no banco
+                const user = await UserModel.findById(decoded.id).exec();
+                if (!user) {
+                    return res.status(401).json({ message: 'Usuário não encontrado' });
+                }
+                req.userId = decoded.id;
+                req.userRole = decoded.role;
+                req.user = {
+                    id: decoded.id,
+                    role: decoded.role
+                };
+                return next();
+            }
         }
         catch (error) {
-            return res.status(401).json({ message: 'Token inválido' });
+            if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
+                return res.status(401).json({ message: 'Token inválido ou expirado' });
+            }
+            throw error;
         }
     }
     catch (error) {
