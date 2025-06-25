@@ -93,12 +93,13 @@ export const representanteController = {
       await novoRepresentante.save();
 
       // Retorna sucesso sem a senha
-      const { senha: _, ...representanteSemSenha } = novoRepresentante.toObject();
+      const representanteSemSenha = novoRepresentante.toObject();
+      const { senha: _, ...representanteSemSenhaFinal } = representanteSemSenha;
 
       return res.status(201).json({
         success: true,
         message: 'Representante criado com sucesso',
-        data: representanteSemSenha
+        data: representanteSemSenhaFinal
       });
 
     } catch (error) {

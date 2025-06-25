@@ -38,11 +38,12 @@ export const authMiddleware = async (
         if (!cliente) {
           return res.status(401).json({ message: 'Usuário não encontrado' });
         }
-        req.userId = cliente._id;
+        req.userId = cliente._id.toString();
         req.userRole = decoded.role;
         req.user = {
-          id: cliente._id,
-          role: decoded.role
+          id: cliente._id.toString(),
+          email: cliente.email,
+          role: UserRole.CLIENTE
         };
         return next();
       } else {
