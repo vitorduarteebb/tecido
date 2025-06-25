@@ -235,21 +235,21 @@ const Dashboard: React.FC = () => {
                         </Box>
                       }
                       secondary={
-                        <Box sx={{ mt: 1 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                            <Typography variant="body2" component="span">
                               {formatarMoeda(rep.vendas)}
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" component="span">
                               Meta: {formatarMoeda(rep.meta)}
                             </Typography>
-                          </Box>
+                          </div>
                           <LinearProgress
                             variant="determinate"
                             value={(rep.vendas / rep.meta) * 100}
                             sx={{ mt: 1 }}
                           />
-                        </Box>
+                        </div>
                       }
                     />
                   </ListItem>

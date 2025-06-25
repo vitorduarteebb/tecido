@@ -53,7 +53,13 @@ export const representanteService = {
   criar: async (dados: Omit<Representante, 'id'>): Promise<Representante> => {
     try {
       const response = await api.post('/representantes', dados);
-      return response.data;
+      
+      // Trata a nova estrutura de resposta
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Erro ao criar representante');
+      }
     } catch (error) {
       console.error('Erro ao criar representante:', error);
       throw error;

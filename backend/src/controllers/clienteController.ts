@@ -6,7 +6,17 @@ import bcrypt from 'bcrypt';
 export const clienteController = {
   async listar(req: Request, res: Response) {
     try {
-      const clientes = await Cliente.find().lean();
+      const user = req.user;
+      let clientes;
+
+      if (user && user.role === 'ADMINISTRADOR') {
+        clientes = await Cliente.find().lean();
+      } else if (user && user.role === 'REPRESENTANTE') {
+        clientes = await Cliente.find({ representantes: user.id }).lean();
+      } else {
+        return res.status(403).json({ success: false, message: 'Acesso negado' });
+      }
+
       // Garante que todos tenham o campo representantes (array)
       const clientesComRepresentantes = clientes.map(c => ({
         ...c,

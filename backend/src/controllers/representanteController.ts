@@ -57,33 +57,54 @@ export const representanteController = {
     try {
       const { nome, email, telefone, regiao, senha, comissao } = req.body;
 
+      // Validação dos campos obrigatórios
+      if (!nome || !email || !senha) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Nome, email e senha são obrigatórios' 
+        });
+      }
+
       // Verifica se já existe um representante com este email
       const representanteExistente = await Representante.findOne({ email });
       if (representanteExistente) {
-        return res.status(400).json({ message: 'Email já cadastrado' });
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email já cadastrado' 
+        });
       }
 
       // Hash da senha
       const salt = await bcrypt.genSalt(10);
       const senhaHash = await bcrypt.hash(senha, salt);
 
-      const novoRepresentante = new Representante({
-        nome,
-        email,
-        telefone,
-        regiao,
+      // Prepara os dados para salvar
+      const dadosRepresentante = {
+        nome: nome.trim(),
+        email: email.trim(),
+        telefone: telefone ? telefone.trim() : '',
+        regiao: regiao ? regiao.trim() : '',
         senha: senhaHash,
-        comissao,
-      });
+        comissao: comissao ? Number(comissao) : 0,
+        status: 'Ativo'
+      };
 
+      const novoRepresentante = new Representante(dadosRepresentante);
       await novoRepresentante.save();
 
       // Retorna o representante sem a senha
       const { senha: _, ...representanteSemSenha } = novoRepresentante.toObject();
-      res.status(201).json(representanteSemSenha);
+      res.status(201).json({
+        success: true,
+        data: representanteSemSenha
+      });
     } catch (error) {
       console.error('Erro ao criar representante:', error);
-      res.status(500).json({ message: 'Erro ao criar representante' });
+      res.status(500).json({ 
+        success: false,
+        message: 'Erro ao criar representante',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   },
 

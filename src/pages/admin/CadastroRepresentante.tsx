@@ -17,6 +17,16 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { representanteService } from '../../services/representanteService';
 
+interface DadosRepresentante {
+  nome: string;
+  email: string;
+  telefone: string;
+  regiao: string;
+  status: string;
+  comissao?: number;
+  senha?: string;
+}
+
 const CadastroRepresentante: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -79,7 +89,26 @@ const CadastroRepresentante: React.FC = () => {
     setLoading(true);
 
     try {
-      if (showPasswordFields) {
+      // Validação dos campos obrigatórios
+      if (!formData.nome.trim()) {
+        setError('Nome é obrigatório');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.email.trim()) {
+        setError('Email é obrigatório');
+        setLoading(false);
+        return;
+      }
+
+      if (!isEdit && !formData.senha.trim()) {
+        setError('Senha é obrigatória para novos representantes');
+        setLoading(false);
+        return;
+      }
+
+      if (showPasswordFields || !isEdit) {
         if (formData.senha !== formData.confirmarSenha) {
           setError('As senhas não coincidem');
           setLoading(false);
@@ -91,19 +120,29 @@ const CadastroRepresentante: React.FC = () => {
           return;
         }
       }
+
       const { confirmarSenha, ...rest } = formData;
-      let dadosParaEnvio: Record<string, any> = { ...rest };
-      if (!dadosParaEnvio.email) dadosParaEnvio.email = '';
-      if (!dadosParaEnvio.status) dadosParaEnvio.status = 'ativo';
-      if (!dadosParaEnvio.nome) dadosParaEnvio.nome = '';
-      if (!dadosParaEnvio.telefone) dadosParaEnvio.telefone = '';
-      if (!dadosParaEnvio.regiao) dadosParaEnvio.regiao = '';
-      if (!showPasswordFields) {
+      let dadosParaEnvio: DadosRepresentante = { 
+        nome: rest.nome.trim(),
+        email: rest.email.trim(),
+        telefone: rest.telefone.trim(),
+        regiao: rest.regiao.trim(),
+        status: rest.status,
+        comissao: 0
+      };
+
+      // Remove a senha se não estiver sendo alterada em edição
+      if (isEdit && !showPasswordFields) {
         delete dadosParaEnvio.senha;
+      } else if (rest.senha) {
+        dadosParaEnvio.senha = rest.senha;
       }
-      if (dadosParaEnvio.comissao !== undefined && dadosParaEnvio.comissao !== '') {
-        dadosParaEnvio.comissao = Number(dadosParaEnvio.comissao);
+
+      // Converte comissão para número
+      if (rest.comissao !== undefined && rest.comissao !== '') {
+        dadosParaEnvio.comissao = Number(rest.comissao);
       }
+
       if (isEdit) {
         await representanteService.atualizar(id as string, dadosParaEnvio);
       } else {
