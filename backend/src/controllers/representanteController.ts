@@ -93,8 +93,7 @@ export const representanteController = {
       await novoRepresentante.save();
 
       // Retorna sucesso sem a senha
-      const representanteSemSenha = novoRepresentante.toObject();
-      delete representanteSemSenha.senha;
+      const { senha: _, ...representanteSemSenha } = novoRepresentante.toObject();
 
       return res.status(201).json({
         success: true,
