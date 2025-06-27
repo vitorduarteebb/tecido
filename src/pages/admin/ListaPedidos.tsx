@@ -26,8 +26,7 @@ import {
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Print as PrintIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { pedidoService, Pedido as PedidoAPI } from '../../services/pedidoService';
