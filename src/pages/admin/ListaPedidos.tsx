@@ -21,13 +21,15 @@ import {
   InputLabel,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  Grid
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Print as PrintIcon
+  Print as PrintIcon,
+  Upload as UploadIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { pedidoService, Pedido as PedidoAPI } from '../../services/pedidoService';
@@ -40,6 +42,7 @@ const ListaPedidos: React.FC = () => {
   const [selectedPedido, setSelectedPedido] = useState<PedidoAPI | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoAPI | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
