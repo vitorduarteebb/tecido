@@ -30,14 +30,14 @@ import {
   Print as PrintIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { pedidoService, Pedido } from '../../services/pedidoService';
+import { pedidoService, Pedido as PedidoAPI } from '../../services/pedidoService';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PedidoPDF from '../../components/PedidoPDF';
 
 const ListaPedidos: React.FC = () => {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoAPI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
+  const [selectedPedido, setSelectedPedido] = useState<PedidoAPI | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('todos');
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ const ListaPedidos: React.FC = () => {
     }
   };
 
-  const handleMudarStatus = (pedido: Pedido) => {
+  const handleMudarStatus = (pedido: PedidoAPI) => {
     setSelectedPedido(pedido);
     setDialogOpen(true);
   };
@@ -216,8 +216,8 @@ const ListaPedidos: React.FC = () => {
                         endereco: ''
                       }}
                       produtos={pedido.itens.map(item => ({
-                        id: typeof item.produto === 'string' ? item.produto : '',
-                        nome: typeof item.produto === 'string' ? item.produto : 'Produto',
+                        id: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'id' in item.produto ? (item.produto as any).id : ''),
+                        nome: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'nome' in item.produto ? (item.produto as any).nome : 'Produto'),
                         quantidade: item.quantidade,
                         valorUnitario: item.valorUnitario,
                         subtotal: item.valorTotal

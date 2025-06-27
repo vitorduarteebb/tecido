@@ -6,20 +6,20 @@ import {
   Card,
   CardContent,
   CardMedia,
-  Button,
   TextField,
   InputAdornment,
-  Chip,
-  Box,
-  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Button,
+  Chip,
+  CircularProgress,
+  Box
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { produtoService } from '../../services/produtoService';
