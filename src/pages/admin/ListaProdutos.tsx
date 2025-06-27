@@ -13,12 +13,7 @@ import {
   Button,
   IconButton,
   Tooltip,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  DialogContentText
+  Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
