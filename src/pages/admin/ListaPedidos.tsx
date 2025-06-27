@@ -31,8 +31,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { pedidoService, Pedido as PedidoAPI } from '../../services/pedidoService';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import PedidoPDF from '../../components/PedidoPDF';
+// PDF Download temporariamente desabilitado devido a erro de build
+// import { PDFDownloadLink } from '@react-pdf/renderer';
+// import PedidoPDF from '../../components/PedidoPDF';
 
 const ListaPedidos: React.FC = () => {
   const [pedidos, setPedidos] = useState<PedidoAPI[]>([]);
@@ -209,7 +210,8 @@ const ListaPedidos: React.FC = () => {
                       <DeleteIcon />
                     </IconButton>
                   </Tooltip>
-                  <PDFDownloadLink
+                  {/* PDF Download temporariamente desabilitado devido a erro de build */}
+                  {/* <PDFDownloadLink
                     document={<PedidoPDF 
                       numeroPedido={pedido._id || pedido.id || ''}
                       cliente={{
@@ -237,7 +239,7 @@ const ListaPedidos: React.FC = () => {
                         </IconButton>
                       </Tooltip>
                     )}
-                  </PDFDownloadLink>
+                  </PDFDownloadLink> */}
                 </TableCell>
               </TableRow>
             ))}
