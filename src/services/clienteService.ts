@@ -2,16 +2,6 @@ import api from './api';
 import { AxiosResponse } from 'axios';
 import { Cliente } from '../types';
 
-interface Endereco {
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-}
-
 interface Pedido {
   id: string;
   data: string;
@@ -26,6 +16,19 @@ interface ApiResponse<T> {
 }
 
 export const clienteService = {
+  listarClientes: () => api.get('/clientes').then(res => res.data.data),
+  
+  obterCliente: (id: string) => api.get(`/clientes/${id}`).then(res => res.data.data),
+  
+  criarCliente: (cliente: any) => api.post('/clientes', cliente).then(res => res.data.data),
+  
+  atualizarCliente: (id: string, cliente: any) => api.put(`/clientes/${id}`, cliente).then(res => res.data.data),
+  
+  excluirCliente: (id: string) => api.delete(`/clientes/${id}`).then(res => res.data.data),
+  
+  listarClientesPorRepresentante: (representanteId: string) => 
+    api.get(`/clientes/representante/${representanteId}`).then(res => res.data.data),
+
   listar: async (): Promise<Cliente[]> => {
     const response: AxiosResponse<ApiResponse<any[]>> = await api.get('/clientes');
     return response.data.data.map((c: any) => ({ ...c, id: c.id || c._id, representantes: c.representantes || [] }));

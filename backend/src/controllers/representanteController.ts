@@ -55,19 +55,39 @@ export const representanteController = {
   // Criar novo representante
   criar: async (req: Request, res: Response) => {
     try {
-      const { nome, email, telefone, regiao, senha, comissao } = req.body;
+      console.log('=== DADOS RECEBIDOS PARA CRIAÇÃO DE REPRESENTANTE ===');
+      console.log('Body completo:', JSON.stringify(req.body, null, 2));
+      console.log('Headers:', JSON.stringify(req.headers, null, 2));
+      
+      const { nome, email, telefone, regiao, senha, comissao, status } = req.body;
+
+      console.log('Campos extraídos:');
+      console.log('- nome:', nome);
+      console.log('- email:', email);
+      console.log('- telefone:', telefone);
+      console.log('- regiao:', regiao);
+      console.log('- senha:', senha ? '***' : 'undefined');
+      console.log('- comissao:', comissao);
+      console.log('- status:', status);
 
       // Validação dos campos obrigatórios
       if (!nome || !email || !senha) {
+        console.log('ERRO: Campos obrigatórios faltando');
+        console.log('- nome presente:', !!nome);
+        console.log('- email presente:', !!email);
+        console.log('- senha presente:', !!senha);
+        
         return res.status(400).json({ 
           success: false,
-          message: 'Nome, email e senha são obrigatórios' 
+          message: 'Nome, email e senha são obrigatórios',
+          receivedData: { nome: !!nome, email: !!email, senha: !!senha }
         });
       }
 
       // Verifica se já existe um representante com este email
       const representanteExistente = await Representante.findOne({ email });
       if (representanteExistente) {
+        console.log('ERRO: Email já cadastrado:', email);
         return res.status(400).json({ 
           success: false,
           message: 'Email já cadastrado' 
@@ -76,37 +96,48 @@ export const representanteController = {
 
       // Hash da senha - garantindo que não seja undefined
       const senhaParaHash = String(senha || '');
+      console.log('Senha para hash (tamanho):', senhaParaHash.length);
+      
       const salt = await bcrypt.genSalt(10);
       const senhaHash = await bcrypt.hash(senhaParaHash, salt);
 
       // Criar representante
-      const novoRepresentante = new Representante({
+      const dadosRepresentante = {
         nome: nome.trim(),
         email: email.trim().toLowerCase(),
         telefone: telefone?.trim() || '',
         regiao: regiao?.trim() || '',
         senha: senhaHash,
         comissao: comissao || 0,
-        status: 'Ativo'
+        status: status || 'Ativo'
+      };
+      
+      console.log('Dados para criação (sem senha):', {
+        ...dadosRepresentante,
+        senha: '***'
       });
 
+      const novoRepresentante = new Representante(dadosRepresentante);
+
       await novoRepresentante.save();
+      console.log('Representante criado com sucesso, ID:', novoRepresentante._id);
 
       // Retorna sucesso sem a senha
       const representanteSemSenha = novoRepresentante.toObject();
-      delete representanteSemSenha.senha;
+      const { senha: _, ...representanteSemSenhaFinal } = representanteSemSenha;
 
       return res.status(201).json({
         success: true,
         message: 'Representante criado com sucesso',
-        data: representanteSemSenha
+        data: representanteSemSenhaFinal
       });
 
     } catch (error) {
       console.error('Erro ao criar representante:', error);
       return res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: 'Erro interno do servidor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
   },

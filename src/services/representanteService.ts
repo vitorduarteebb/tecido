@@ -10,6 +10,26 @@ interface Representante {
   comissao?: number;
 }
 
+interface CriarRepresentante {
+  nome: string;
+  email: string;
+  telefone: string;
+  regiao: string;
+  status: string;
+  comissao?: number;
+  senha: string;
+}
+
+interface AtualizarRepresentante {
+  nome?: string;
+  email?: string;
+  telefone?: string;
+  regiao?: string;
+  status?: string;
+  comissao?: number;
+  senha?: string;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -50,9 +70,14 @@ export const representanteService = {
     }
   },
 
-  criar: async (dados: Omit<Representante, 'id'>): Promise<Representante> => {
+  criar: async (dados: CriarRepresentante): Promise<Representante> => {
     try {
+      console.log('=== DADOS ENVIADOS PARA CRIAÇÃO DE REPRESENTANTE ===');
+      console.log('Dados completos:', JSON.stringify(dados, null, 2));
+      
       const response = await api.post('/representantes', dados);
+      
+      console.log('Resposta do servidor:', response.data);
       
       // Trata a nova estrutura de resposta
       if (response.data.success) {
@@ -60,13 +85,16 @@ export const representanteService = {
       } else {
         throw new Error(response.data.message || 'Erro ao criar representante');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar representante:', error);
+      if (error.response) {
+        console.error('Resposta de erro do servidor:', error.response.data);
+      }
       throw error;
     }
   },
 
-  atualizar: async (id: string, dados: Partial<Representante>): Promise<Representante> => {
+  atualizar: async (id: string, dados: AtualizarRepresentante): Promise<Representante> => {
     try {
       const response = await api.put(`/representantes/${id}`, dados);
       return response.data;
