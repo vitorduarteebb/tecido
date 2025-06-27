@@ -30,11 +30,15 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { pedidoService, Pedido as PedidoAPI } from '../../services/pedidoService';
+import DebugWrapper from '../../components/DebugWrapper';
+import { debugLogger } from '../../utils/debug';
 // PDF Download temporariamente desabilitado devido a erro de build
 // import { PDFDownloadLink } from '@react-pdf/renderer';
 // import PedidoPDF from '../../components/PedidoPDF';
 
 const ListaPedidos: React.FC = () => {
+  debugLogger.info('ListaPedidos - Iniciando renderização');
+  
   const [pedidos, setPedidos] = useState<PedidoAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState<PedidoAPI | null>(null);
@@ -43,24 +47,29 @@ const ListaPedidos: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    debugLogger.info('ListaPedidos - useEffect executado');
     carregarPedidos();
   }, []);
 
   const carregarPedidos = async () => {
     try {
       console.log('[ListaPedidos] Iniciando carregamento de pedidos...');
+      debugLogger.info('ListaPedidos - Iniciando carregamento de pedidos');
       setLoading(true);
       const data = await pedidoService.listar();
       console.log('[ListaPedidos] Pedidos carregados com sucesso:', data);
+      debugLogger.info('ListaPedidos - Pedidos carregados com sucesso', { count: data.length });
       setPedidos(data);
     } catch (error) {
       console.error('[ListaPedidos] Erro ao carregar pedidos:', error);
+      debugLogger.error('ListaPedidos - Erro ao carregar pedidos', { error });
     } finally {
       setLoading(false);
     }
   };
 
   const handleMudarStatus = (pedido: PedidoAPI) => {
+    debugLogger.info('ListaPedidos - Mudando status do pedido', { pedidoId: pedido._id || pedido.id });
     setSelectedPedido(pedido);
     setDialogOpen(true);
   };
@@ -69,12 +78,17 @@ const ListaPedidos: React.FC = () => {
     if (!selectedPedido) return;
 
     try {
+      debugLogger.info('ListaPedidos - Confirmando mudança de status', { 
+        pedidoId: selectedPedido._id || selectedPedido.id,
+        novoStatus: selectedPedido.status 
+      });
       await pedidoService.atualizarStatus(selectedPedido._id || selectedPedido.id || '', selectedPedido.status || '');
       await carregarPedidos();
       setDialogOpen(false);
       setSelectedPedido(null);
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+      debugLogger.error('ListaPedidos - Erro ao atualizar status', { error });
     }
   };
 
@@ -130,148 +144,152 @@ const ListaPedidos: React.FC = () => {
 
   if (loading) {
     return (
-      <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Container>
+      <DebugWrapper componentName="ListaPedidos">
+        <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <CircularProgress />
+        </Container>
+      </DebugWrapper>
     );
   }
 
   return (
-    <Container maxWidth="xl">
-      <Typography variant="h4" gutterBottom>
-        Lista de Pedidos
-      </Typography>
+    <DebugWrapper componentName="ListaPedidos">
+      <Container maxWidth="xl">
+        <Typography variant="h4" gutterBottom>
+          Lista de Pedidos
+        </Typography>
 
-      <FormControl style={{ marginBottom: 20, minWidth: 200 }}>
-        <InputLabel>Filtrar por Status</InputLabel>
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <MenuItem value="todos">Todos</MenuItem>
-          <MenuItem value="PENDENTE">Pendente</MenuItem>
-          <MenuItem value="APROVADO">Aprovado</MenuItem>
-          <MenuItem value="EM_PRODUCAO">Em Produção</MenuItem>
-          <MenuItem value="PRONTO">Pronto</MenuItem>
-          <MenuItem value="ENTREGUE">Entregue</MenuItem>
-          <MenuItem value="CANCELADO">Cancelado</MenuItem>
-        </Select>
-      </FormControl>
+        <FormControl style={{ marginBottom: 20, minWidth: 200 }}>
+          <InputLabel>Filtrar por Status</InputLabel>
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <MenuItem value="todos">Todos</MenuItem>
+            <MenuItem value="PENDENTE">Pendente</MenuItem>
+            <MenuItem value="APROVADO">Aprovado</MenuItem>
+            <MenuItem value="EM_PRODUCAO">Em Produção</MenuItem>
+            <MenuItem value="PRONTO">Pronto</MenuItem>
+            <MenuItem value="ENTREGUE">Entregue</MenuItem>
+            <MenuItem value="CANCELADO">Cancelado</MenuItem>
+          </Select>
+        </FormControl>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Cliente</TableCell>
-              <TableCell>Representante</TableCell>
-              <TableCell>Data</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Valor Total</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {pedidosFiltrados.map((pedido) => (
-              <TableRow key={pedido._id || pedido.id}>
-                <TableCell>{getClienteNome(pedido.cliente)}</TableCell>
-                <TableCell>{getRepresentanteNome(pedido.representante)}</TableCell>
-                <TableCell>{formatarData(pedido.dataCriacao)}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={getStatusLabel(pedido.status)} 
-                    color={getStatusColor(pedido.status) as any}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{formatarPreco(pedido.valorTotal)}</TableCell>
-                <TableCell>
-                  <Tooltip title="Visualizar">
-                    <IconButton 
-                      onClick={() => navigate(`/admin/pedidos/${pedido._id || pedido.id}`)}
-                      size="small"
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Editar">
-                    <IconButton 
-                      onClick={() => navigate(`/admin/pedidos/${pedido._id || pedido.id}/editar`)}
-                      size="small"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Mudar Status">
-                    <IconButton 
-                      onClick={() => handleMudarStatus(pedido)}
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                  {/* PDF Download temporariamente desabilitado devido a erro de build */}
-                  {/* <PDFDownloadLink
-                    document={<PedidoPDF 
-                      numeroPedido={pedido._id || pedido.id || ''}
-                      cliente={{
-                        nome: getClienteNome(pedido.cliente),
-                        cnpj: typeof pedido.cliente === 'object' ? pedido.cliente.cnpj || '' : '',
-                        endereco: ''
-                      }}
-                      produtos={pedido.itens.map(item => ({
-                        id: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'id' in item.produto ? (item.produto as any).id : ''),
-                        nome: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'nome' in item.produto ? (item.produto as any).nome : 'Produto'),
-                        quantidade: item.quantidade,
-                        valorUnitario: item.valorUnitario,
-                        subtotal: item.valorTotal
-                      }))}
-                      valorTotal={pedido.valorTotal}
-                      dataPedido={pedido.dataCriacao || pedido.data || ''}
-                      dataPrevisao={''}
-                    />}
-                    fileName={`pedido-${pedido._id || pedido.id}.pdf`}
-                  >
-                    {({ loading }) => (
-                      <Tooltip title="Baixar PDF">
-                        <IconButton size="small" disabled={loading}>
-                          <PrintIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </PDFDownloadLink> */}
-                </TableCell>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Cliente</TableCell>
+                <TableCell>Representante</TableCell>
+                <TableCell>Data</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Valor Total</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {pedidosFiltrados.map((pedido) => (
+                <TableRow key={pedido._id || pedido.id}>
+                  <TableCell>{getClienteNome(pedido.cliente)}</TableCell>
+                  <TableCell>{getRepresentanteNome(pedido.representante)}</TableCell>
+                  <TableCell>{formatarData(pedido.dataCriacao)}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={getStatusLabel(pedido.status)} 
+                      color={getStatusColor(pedido.status) as any}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{formatarPreco(pedido.valorTotal)}</TableCell>
+                  <TableCell>
+                    <Tooltip title="Visualizar">
+                      <IconButton 
+                        onClick={() => navigate(`/admin/pedidos/${pedido._id || pedido.id}`)}
+                        size="small"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Editar">
+                      <IconButton 
+                        onClick={() => navigate(`/admin/pedidos/${pedido._id || pedido.id}/editar`)}
+                        size="small"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Mudar Status">
+                      <IconButton 
+                        onClick={() => handleMudarStatus(pedido)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                    {/* PDF Download temporariamente desabilitado devido a erro de build */}
+                    {/* <PDFDownloadLink
+                      document={<PedidoPDF 
+                        numeroPedido={pedido._id || pedido.id || ''}
+                        cliente={{
+                          nome: getClienteNome(pedido.cliente),
+                          cnpj: typeof pedido.cliente === 'object' ? pedido.cliente.cnpj || '' : '',
+                          endereco: ''
+                        }}
+                        produtos={pedido.itens.map(item => ({
+                          id: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'id' in item.produto ? (item.produto as any).id : ''),
+                          nome: typeof item.produto === 'string' ? item.produto : (item.produto && typeof item.produto === 'object' && 'nome' in item.produto ? (item.produto as any).nome : 'Produto'),
+                          quantidade: item.quantidade,
+                          valorUnitario: item.valorUnitario,
+                          subtotal: item.valorTotal
+                        }))}
+                        valorTotal={pedido.valorTotal}
+                        dataPedido={pedido.dataCriacao || pedido.data || ''}
+                        dataPrevisao={''}
+                      />}
+                      fileName={`pedido-${pedido._id || pedido.id}.pdf`}
+                    >
+                      {({ loading }) => (
+                        <Tooltip title="Baixar PDF">
+                          <IconButton size="small" disabled={loading}>
+                            <PrintIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </PDFDownloadLink> */}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>Mudar Status do Pedido</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth style={{ marginTop: 16 }}>
-            <InputLabel>Novo Status</InputLabel>
-            <Select
-              value={selectedPedido?.status || ''}
-              onChange={(e) => setSelectedPedido(prev => prev ? { ...prev, status: e.target.value } : null)}
-            >
-              <MenuItem value="PENDENTE">Pendente</MenuItem>
-              <MenuItem value="APROVADO">Aprovado</MenuItem>
-              <MenuItem value="EM_PRODUCAO">Em Produção</MenuItem>
-              <MenuItem value="PRONTO">Pronto</MenuItem>
-              <MenuItem value="ENTREGUE">Entregue</MenuItem>
-              <MenuItem value="CANCELADO">Cancelado</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={confirmarMudancaStatus} variant="contained">
-            Confirmar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+          <DialogTitle>Mudar Status do Pedido</DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth style={{ marginTop: 16 }}>
+              <InputLabel>Novo Status</InputLabel>
+              <Select
+                value={selectedPedido?.status || ''}
+                onChange={(e) => setSelectedPedido(prev => prev ? { ...prev, status: e.target.value } : null)}
+              >
+                <MenuItem value="PENDENTE">Pendente</MenuItem>
+                <MenuItem value="APROVADO">Aprovado</MenuItem>
+                <MenuItem value="EM_PRODUCAO">Em Produção</MenuItem>
+                <MenuItem value="PRONTO">Pronto</MenuItem>
+                <MenuItem value="ENTREGUE">Entregue</MenuItem>
+                <MenuItem value="CANCELADO">Cancelado</MenuItem>
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmarMudancaStatus} variant="contained">
+              Confirmar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </DebugWrapper>
   );
 };
 

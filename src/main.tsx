@@ -9,6 +9,20 @@ import './index.css';
 // Importação global do Material-UI para resolver problemas de build
 import './utils/materialUI';
 
+// Configuração do sistema de debug global
+import { setupGlobalErrorHandling, setupPerformanceMonitoring, setupRouteDebugging, debugLogger } from './utils/debug';
+
+// Configura debug global
+setupGlobalErrorHandling();
+setupPerformanceMonitoring();
+setupRouteDebugging();
+
+debugLogger.info('Aplicação iniciando', {
+  userAgent: navigator.userAgent,
+  url: window.location.href,
+  timestamp: new Date().toISOString()
+});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>

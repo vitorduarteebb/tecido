@@ -11,7 +11,7 @@ const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 // CORS configuration
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:5174', 'http://localhost:5175'], // Aceita ambas as portas
+    origin: ['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178'], // Aceita todas as portas do Vite
     credentials: true, // Required for cookies, authorization headers with HTTPS
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
