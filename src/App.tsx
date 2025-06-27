@@ -4,6 +4,9 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Importação global para resolver erro DialogContentText
+import DialogContentText from '@mui/material/DialogContentText';
+
 // Theme
 import theme from './theme';
 
