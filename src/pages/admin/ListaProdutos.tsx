@@ -26,11 +26,13 @@ import { produtoService } from '../../services/produtoService';
 import { Produto } from '../../types/produto';
 
 const ListaProdutos: React.FC = () => {
+  console.log('[ListaProdutos] Componente sendo renderizado');
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[ListaProdutos] useEffect executado');
     carregarProdutos();
   }, []);
 
