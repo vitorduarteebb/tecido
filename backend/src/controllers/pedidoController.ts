@@ -43,12 +43,15 @@ export const pedidoController = {
   },
   listar: async (req: Request, res: Response) => {
     try {
+      console.log('[pedidoController] Iniciando listagem de pedidos');
       const pedidos = await Pedido.find()
         .populate('cliente', 'razaoSocial nomeFantasia cnpj')
         .populate('representante', 'nome email')
         .populate('itens.produto', 'nome codigo preco');
+      console.log('[pedidoController] Pedidos encontrados:', pedidos.length);
       return res.json({ success: true, data: pedidos, count: pedidos.length });
     } catch (error) {
+      console.error('[pedidoController] Erro ao listar pedidos:', error);
       return res.status(500).json({ success: false, message: 'Erro ao listar pedidos', error });
     }
   },

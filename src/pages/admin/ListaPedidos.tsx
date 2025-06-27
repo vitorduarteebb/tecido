@@ -48,11 +48,13 @@ const ListaPedidos: React.FC = () => {
 
   const carregarPedidos = async () => {
     try {
+      console.log('[ListaPedidos] Iniciando carregamento de pedidos...');
       setLoading(true);
       const data = await pedidoService.listar();
+      console.log('[ListaPedidos] Pedidos carregados com sucesso:', data);
       setPedidos(data);
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
+      console.error('[ListaPedidos] Erro ao carregar pedidos:', error);
     } finally {
       setLoading(false);
     }

@@ -21,7 +21,9 @@ export interface MovimentacaoEstoque {
 
 export const produtoService = {
   listar: async (): Promise<Produto[]> => {
+    console.log('[produtoService] Fazendo requisição para /produtos');
     const response: AxiosResponse<ApiResponse<Produto[]>> = await api.get('/produtos');
+    console.log('[produtoService] Resposta recebida:', response.data);
     return response.data.data;
   },
 

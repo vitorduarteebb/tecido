@@ -68,6 +68,11 @@ function App() {
                 <CadastroProduto />
               </PrivateRoute>
             } />
+            <Route path="/admin/produtos/:id/editar" element={
+              <PrivateRoute requiredRole="ADMINISTRADOR">
+                <CadastroProduto />
+              </PrivateRoute>
+            } />
             <Route path="/admin/clientes" element={
               <PrivateRoute requiredRole="ADMINISTRADOR">
                 <ListaClientes />
@@ -99,6 +104,11 @@ function App() {
               </PrivateRoute>
             } />
             <Route path="/admin/pedidos/:id" element={
+              <PrivateRoute requiredRole="ADMINISTRADOR">
+                <DetalhesPedido />
+              </PrivateRoute>
+            } />
+            <Route path="/admin/pedidos/:id/editar" element={
               <PrivateRoute requiredRole="ADMINISTRADOR">
                 <DetalhesPedido />
               </PrivateRoute>

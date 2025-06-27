@@ -37,7 +37,9 @@ export const pedidoService = {
     return response.data.data;
   },
   listar: async (): Promise<Pedido[]> => {
+    console.log('[pedidoService] Fazendo requisição para /pedidos');
     const response: AxiosResponse<ApiResponse<Pedido[]>> = await api.get('/pedidos');
+    console.log('[pedidoService] Resposta recebida:', response.data);
     return response.data.data;
   },
   listarPorRepresentante: async (representanteId: string): Promise<Pedido[]> => {

@@ -4,10 +4,12 @@ import { Produto } from '../models/Produto';
 export const produtoController = {
   async listar(req: Request, res: Response) {
     try {
+      console.log('[produtoController] Iniciando listagem de produtos');
       const produtos = await Produto.find().sort({ dataCadastro: -1 });
+      console.log('[produtoController] Produtos encontrados:', produtos.length);
       return res.json({ success: true, data: produtos, count: produtos.length });
     } catch (error) {
-      console.error('Erro ao listar produtos:', error);
+      console.error('[produtoController] Erro ao listar produtos:', error);
       return res.status(500).json({ success: false, message: 'Erro ao listar produtos' });
     }
   },

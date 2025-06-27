@@ -1,8 +1,12 @@
 import express from 'express';
 import { produtoController } from '../controllers/produtoController';
 import movimentacaoEstoqueRoutes from './movimentacaoEstoqueRoutes';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = express.Router();
+
+// Aplicar middleware de autenticação em todas as rotas
+router.use(authMiddleware);
 
 router.get('/', produtoController.listar);
 router.get('/:id', produtoController.obter);

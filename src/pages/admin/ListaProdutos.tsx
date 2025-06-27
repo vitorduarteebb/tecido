@@ -36,11 +36,13 @@ const ListaProdutos: React.FC = () => {
 
   const carregarProdutos = async () => {
     try {
+      console.log('[ListaProdutos] Iniciando carregamento de produtos...');
       setLoading(true);
       const data = await produtoService.listar();
+      console.log('[ListaProdutos] Produtos carregados com sucesso:', data);
       setProdutos(data);
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+      console.error('[ListaProdutos] Erro ao carregar produtos:', error);
     } finally {
       setLoading(false);
     }

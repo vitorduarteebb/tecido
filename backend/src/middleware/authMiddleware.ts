@@ -19,9 +19,12 @@ export const authMiddleware = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('[authMiddleware] URL da requisição:', req.url);
+    console.log('[authMiddleware] Método da requisição:', req.method);
     console.log('[authMiddleware] Header Authorization recebido:', authHeader);
 
     if (!authHeader) {
+      console.log('[authMiddleware] Token não fornecido');
       return res.status(401).json({ message: 'Token não fornecido' });
     }
 

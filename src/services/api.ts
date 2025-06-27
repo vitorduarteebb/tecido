@@ -15,6 +15,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('[Axios Interceptor] URL da requisição:', config.url);
+    console.log('[Axios Interceptor] Método da requisição:', config.method);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('[Axios Interceptor] Enviando token no header Authorization:', token);
@@ -24,7 +26,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Erro no interceptor de requisição:', error);
+    console.error('[Axios Interceptor] Erro no interceptor de requisição:', error);
     return Promise.reject(error);
   }
 );
