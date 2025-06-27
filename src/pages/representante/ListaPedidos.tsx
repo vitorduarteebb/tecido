@@ -1,84 +1,137 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, CircularProgress, Button } from '@mui/material';
-import { pedidoService, Pedido } from '../../services/pedidoService';
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Chip
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { pedidoService } from '../../services/pedidoService';
 import { useSelector } from 'react-redux';
-import { format } from 'date-fns';
+import { RootState } from '../../store';
 
 const ListaPedidos: React.FC = () => {
-  const user = useSelector((state: any) => state.auth.user);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (user && user.id) {
-      setLoading(true);
-      pedidoService.listarPorRepresentante(user.id)
-        .then(setPedidos)
-        .catch(() => setError('Erro ao carregar pedidos'))
-        .finally(() => setLoading(false));
+    if (user?.id) {
+      carregarPedidos();
     }
   }, [user]);
 
+  const carregarPedidos = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const data = await pedidoService.listarPorRepresentante(user.id);
+      setPedidos(data);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'PENDENTE': return 'warning';
+      case 'APROVADO': return 'info';
+      case 'EM_PRODUCAO': return 'primary';
+      case 'PRONTO': return 'success';
+      case 'ENTREGUE': return 'default';
+      case 'CANCELADO': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'PENDENTE': return 'Pendente';
+      case 'APROVADO': return 'Aprovado';
+      case 'EM_PRODUCAO': return 'Em Produção';
+      case 'PRONTO': return 'Pronto';
+      case 'ENTREGUE': return 'Entregue';
+      case 'CANCELADO': return 'Cancelado';
+      default: return status || 'Pendente';
+    }
+  };
+
+  const formatarData = (data?: string) => {
+    if (!data) return '-';
+    return new Date(data).toLocaleDateString('pt-BR');
+  };
+
+  const formatarPreco = (preco: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(preco);
+  };
+
+  if (loading) {
+    return (
+      <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
+    <Container maxWidth="xl">
+      <Typography variant="h4" gutterBottom>
         Meus Pedidos
       </Typography>
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
-      ) : pedidos.length === 0 ? (
-        <Typography>Nenhum pedido encontrado.</Typography>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Número</TableCell>
-                <TableCell>Cliente</TableCell>
-                <TableCell>Representante</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Data</TableCell>
-                <TableCell align="right">Valor Total</TableCell>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Cliente</TableCell>
+              <TableCell>Data</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Valor Total</TableCell>
+              <TableCell>Ações</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {pedidos.map((pedido) => (
+              <TableRow key={pedido._id || pedido.id}>
+                <TableCell>{typeof pedido.cliente === 'string' ? pedido.cliente : pedido.cliente?.nome || 'Cliente'}</TableCell>
+                <TableCell>{formatarData(pedido.dataCriacao)}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={getStatusLabel(pedido.status)} 
+                    color={getStatusColor(pedido.status) as any}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{formatarPreco(pedido.valorTotal)}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label="Visualizar" 
+                    color="primary"
+                    size="small"
+                    onClick={() => navigate(`/representante/pedidos/${pedido._id || pedido.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {pedidos && pedidos.length > 0 && pedidos.map((pedido) => {
-                const clienteNome = typeof pedido.cliente === 'string'
-                  ? pedido.cliente
-                  : pedido.cliente && (pedido.cliente.razaoSocial || pedido.cliente.nomeFantasia || pedido.cliente.nome || 'Sem nome');
-                const representanteNome = typeof pedido.representante === 'string'
-                  ? pedido.representante
-                  : pedido.representante && (pedido.representante.nome || pedido.representante.razaoSocial || '-');
-                const pedidoId = pedido.id || pedido._id || '';
-                let dataPedido = '-';
-                if (pedido.dataCriacao) {
-                  dataPedido = format(new Date(pedido.dataCriacao), 'dd/MM/yyyy');
-                } else if (pedido.data) {
-                  dataPedido = format(new Date(pedido.data), 'dd/MM/yyyy');
-                }
-                return (
-                  <TableRow key={pedidoId}>
-                    <TableCell>{typeof pedidoId === 'string' && pedidoId.slice ? pedidoId.slice(-6).toUpperCase() : pedidoId}</TableCell>
-                    <TableCell>{clienteNome}</TableCell>
-                    <TableCell>{representanteNome}</TableCell>
-                    <TableCell>{pedido.status}</TableCell>
-                    <TableCell>{dataPedido}</TableCell>
-                    <TableCell>
-                      {pedido.itens?.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Box>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Container>
   );
 };
 

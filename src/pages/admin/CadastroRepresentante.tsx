@@ -17,7 +17,17 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { representanteService } from '../../services/representanteService';
 
-interface DadosRepresentante {
+interface DadosCriacaoRepresentante {
+  nome: string;
+  email: string;
+  telefone: string;
+  regiao: string;
+  status: string;
+  comissao?: number;
+  senha: string;
+}
+
+interface DadosAtualizacaoRepresentante {
   nome: string;
   email: string;
   telefone: string;
@@ -122,30 +132,45 @@ const CadastroRepresentante: React.FC = () => {
       }
 
       const { confirmarSenha, ...rest } = formData;
-      let dadosParaEnvio: DadosRepresentante = { 
-        nome: rest.nome.trim(),
-        email: rest.email.trim(),
-        telefone: rest.telefone.trim(),
-        regiao: rest.regiao.trim(),
-        status: rest.status,
-        comissao: 0
-      };
-
-      // Remove a senha se não estiver sendo alterada em edição
-      if (isEdit && !showPasswordFields) {
-        delete dadosParaEnvio.senha;
-      } else if (rest.senha) {
-        dadosParaEnvio.senha = rest.senha;
-      }
-
+      
       // Converte comissão para número
-      if (rest.comissao !== undefined && rest.comissao !== '') {
-        dadosParaEnvio.comissao = Number(rest.comissao);
-      }
+      const comissao = rest.comissao !== undefined && rest.comissao !== '' ? Number(rest.comissao) : 0;
 
       if (isEdit) {
+        // Para edição
+        let dadosParaEnvio: DadosAtualizacaoRepresentante = { 
+          nome: rest.nome.trim(),
+          email: rest.email.trim(),
+          telefone: rest.telefone.trim(),
+          regiao: rest.regiao.trim(),
+          status: rest.status,
+          comissao
+        };
+
+        // Adiciona senha apenas se estiver sendo alterada
+        if (showPasswordFields && rest.senha) {
+          dadosParaEnvio.senha = rest.senha;
+        }
+
         await representanteService.atualizar(id as string, dadosParaEnvio);
       } else {
+        // Para criação - senha é obrigatória
+        if (!rest.senha) {
+          setError('Senha é obrigatória para novos representantes');
+          setLoading(false);
+          return;
+        }
+
+        const dadosParaEnvio: DadosCriacaoRepresentante = { 
+          nome: rest.nome.trim(),
+          email: rest.email.trim(),
+          telefone: rest.telefone.trim(),
+          regiao: rest.regiao.trim(),
+          status: rest.status,
+          comissao,
+          senha: rest.senha
+        };
+
         await representanteService.criar(dadosParaEnvio);
       }
       navigate('/admin/representantes');

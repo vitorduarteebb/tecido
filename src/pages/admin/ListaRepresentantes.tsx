@@ -39,16 +39,13 @@ const ListaRepresentantes: React.FC = () => {
   const navigate = useNavigate();
   const [representantes, setRepresentantes] = useState<Representante[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [representanteSelecionado, setRepresentanteSelecionado] = useState<string | null>(null);
+  const [selectedRepresentante, setSelectedRepresentante] = useState<Representante | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [openHistorico, setOpenHistorico] = useState(false);
   const [repHistorico, setRepHistorico] = useState<Representante | null>(null);
   const [historico, setHistorico] = useState<any[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
-  const [totalVendas, setTotalVendas] = useState(0);
-  const [totalComissao, setTotalComissao] = useState(0);
 
   const carregarRepresentantes = async () => {
     try {
@@ -56,10 +53,13 @@ const ListaRepresentantes: React.FC = () => {
       const data = await representanteService.listar();
       console.log('Representantes carregados do backend:', data);
       setRepresentantes(data);
-      setError(null);
     } catch (err) {
       console.error('Erro ao carregar representantes:', err);
-      setError('Erro ao carregar a lista de representantes. Por favor, tente novamente.');
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar a lista de representantes. Por favor, tente novamente mais tarde.',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -76,25 +76,18 @@ const ListaRepresentantes: React.FC = () => {
         .then(pedidos => {
           const pedidosFaturados = pedidos.filter((p: any) => p.dataFaturamento);
           setHistorico(pedidosFaturados);
-          const total = pedidosFaturados.reduce((acc: number, p: any) => acc + (p.valorTotal || 0), 0);
-          setTotalVendas(total);
-          const comissao = repHistorico.comissao ? Number(repHistorico.comissao) : 0;
-          const totalCom = pedidosFaturados.reduce((acc: number, p: any) => acc + ((p.valorTotal || 0) * comissao / 100), 0);
-          setTotalComissao(totalCom);
         })
         .finally(() => setLoadingHistorico(false));
     } else {
       setHistorico([]);
-      setTotalVendas(0);
-      setTotalComissao(0);
     }
   }, [openHistorico, repHistorico]);
 
   const handleDelete = async () => {
-    if (!representanteSelecionado) return;
+    if (!selectedRepresentante) return;
 
     try {
-      await representanteService.excluir(representanteSelecionado);
+      await representanteService.excluir(selectedRepresentante.id);
       setSnackbar({
         open: true,
         message: 'Representante excluído com sucesso',
@@ -108,8 +101,8 @@ const ListaRepresentantes: React.FC = () => {
         severity: 'error'
       });
     } finally {
-      setDeleteDialog(false);
-      setRepresentanteSelecionado(null);
+      setDeleteDialogOpen(false);
+      setSelectedRepresentante(null);
     }
   };
 
@@ -151,12 +144,6 @@ const ListaRepresentantes: React.FC = () => {
           Novo Representante
         </Button>
       </div>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
 
       <TableContainer component={Paper}>
         <Table>
@@ -226,8 +213,8 @@ const ListaRepresentantes: React.FC = () => {
                     <IconButton 
                       color="error"
                       onClick={() => {
-                        setRepresentanteSelecionado(representante.id);
-                        setDeleteDialog(true);
+                        setSelectedRepresentante(representante);
+                        setDeleteDialogOpen(true);
                       }}
                     >
                       <DeleteIcon />
@@ -241,7 +228,7 @@ const ListaRepresentantes: React.FC = () => {
       </TableContainer>
 
       {/* Dialog de confirmação de exclusão */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirmar Exclusão</DialogTitle>
         <DialogContent>
           <Typography>
@@ -249,7 +236,7 @@ const ListaRepresentantes: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialog(false)}>Cancelar</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
           <Button onClick={handleDelete} color="error" variant="contained">
             Excluir
           </Button>
@@ -328,11 +315,6 @@ const ListaRepresentantes: React.FC = () => {
               const pedidos = await representanteService.historicoVendas(repHistorico.id);
               const pedidosFaturados = pedidos.filter((p: any) => p.dataFaturamento);
               setHistorico(pedidosFaturados);
-              const total = pedidosFaturados.reduce((acc: number, p: any) => acc + (p.valorTotal || 0), 0);
-              setTotalVendas(total);
-              const comissao = repHistorico.comissao ? Number(repHistorico.comissao) : 0;
-              const totalCom = pedidosFaturados.reduce((acc: number, p: any) => acc + ((p.valorTotal || 0) * comissao / 100), 0);
-              setTotalComissao(totalCom);
               setLoadingHistorico(false);
             }}
           >

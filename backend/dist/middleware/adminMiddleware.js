@@ -4,9 +4,21 @@ exports.adminMiddleware = void 0;
 const types_1 = require("../types");
 const adminMiddleware = (req, res, next) => {
     try {
-        if (req.userRole !== types_1.UserRole.ADMIN) {
+        // Verifica se o usuário e a role estão presentes
+        if (!req.user || !req.userRole) {
+            return res.status(401).json({
+                message: 'Usuário não autenticado'
+            });
+        }
+        // Normaliza a role para comparação
+        const userRole = req.userRole.toUpperCase();
+        const adminRole = types_1.UserRole.ADMINISTRADOR.toUpperCase();
+        if (userRole !== adminRole) {
+            console.log('Acesso negado - Role do usuário:', userRole, 'Role necessária:', adminRole);
             return res.status(403).json({
-                message: 'Acesso negado. Apenas administradores podem acessar este recurso.'
+                message: 'Acesso negado. Apenas administradores podem acessar este recurso.',
+                userRole: userRole,
+                requiredRole: adminRole
             });
         }
         next();
