@@ -1,5 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { debugLogger } from '../utils/debug';
+import { debugLogger, checkMaterialUIComponents } from '../utils/debug';
 
 interface Props {
   children: ReactNode;
@@ -45,8 +45,11 @@ class DebugWrapper extends Component<Props, State> {
 
     // Verifica componentes Material-UI disponíveis
     setTimeout(() => {
-      const { checkMaterialUIComponents } = require('../utils/debug');
-      checkMaterialUIComponents();
+      try {
+        checkMaterialUIComponents();
+      } catch (error) {
+        debugLogger.error('Erro ao verificar componentes Material-UI', { error });
+      }
     }, 100);
   }
 

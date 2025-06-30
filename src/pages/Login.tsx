@@ -16,7 +16,15 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Paper,
+  Avatar,
 } from '@mui/material';
+import {
+  Store as StoreIcon,
+  Lock as LockIcon,
+} from '@mui/icons-material';
 import { setCredentials } from '../store/slices/authSlice';
 import { authService } from '../services/authService';
 import { RootState } from '../store';
@@ -32,6 +40,8 @@ interface FormData {
 const Login = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -66,8 +76,14 @@ const Login = () => {
   // Se estiver carregando a verificação inicial
   if (initializing) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: 'background.default'
+      }}>
+        <CircularProgress size={60} />
       </Box>
     );
   }
@@ -147,28 +163,91 @@ const Login = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        p: { xs: 2, sm: 3 },
+      }}
+    >
+      <Container 
+        component="main" 
+        maxWidth="sm"
         sx={{
-          marginTop: 8,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
         }}
       >
-        <Card sx={{ width: '100%', mt: 3 }}>
-          <CardContent>
-            <Typography component="h1" variant="h5" align="center" gutterBottom>
-              Acesso ao Sistema - Loja de Tecidos
+        <Paper
+          elevation={8}
+          sx={{
+            width: '100%',
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              color: 'white',
+              p: { xs: 3, sm: 4 },
+              textAlign: 'center',
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 80,
+                height: 80,
+                mx: 'auto',
+                mb: 2,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                border: '3px solid rgba(255,255,255,0.3)',
+              }}
+            >
+              <StoreIcon sx={{ fontSize: 40 }} />
+            </Avatar>
+            <Typography 
+              component="h1" 
+              variant={isMobile ? "h5" : "h4"} 
+              sx={{ 
+                fontWeight: 700,
+                mb: 1
+              }}
+            >
+              Loja de Tecidos
             </Typography>
-            
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                opacity: 0.9,
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}
+            >
+              Sistema de Gestão
+            </Typography>
+          </Box>
+
+          {/* Form */}
+          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: 2,
+                }}
+              >
                 {error}
               </Alert>
             )}
             
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+            <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 margin="normal"
                 required
@@ -182,7 +261,14 @@ const Login = () => {
                 onChange={handleTextChange}
                 error={!!error && error.includes('e-mail')}
                 disabled={loading}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
               />
+              
               <TextField
                 margin="normal"
                 required
@@ -196,37 +282,86 @@ const Login = () => {
                 onChange={handleTextChange}
                 error={!!error && error.includes('senha')}
                 disabled={loading}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
               />
-              <FormControl fullWidth margin="normal">
+              
+              <FormControl 
+                fullWidth 
+                margin="normal"
+                sx={{
+                  mb: 3,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              >
                 <InputLabel id="role-label">Tipo de Usuário</InputLabel>
                 <Select
                   labelId="role-label"
                   id="role"
-                  name="role"
                   value={formData.role}
                   label="Tipo de Usuário"
                   onChange={handleRoleChange}
                   disabled={loading}
                 >
-                  <MenuItem value="CLIENTE">Cliente</MenuItem>
-                  <MenuItem value="REPRESENTANTE">Representante</MenuItem>
                   <MenuItem value="ADMINISTRADOR">Administrador</MenuItem>
+                  <MenuItem value="REPRESENTANTE">Representante</MenuItem>
+                  <MenuItem value="CLIENTE">Cliente</MenuItem>
                 </Select>
               </FormControl>
+              
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ mt: 3, mb: 2 }}
                 disabled={loading}
+                sx={{
+                  mt: 2,
+                  mb: 2,
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                  },
+                  '&:disabled': {
+                    background: 'rgba(0,0,0,0.12)',
+                  },
+                }}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LockIcon />}
               >
-                {loading ? <CircularProgress size={24} /> : 'Entrar'}
+                {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </Box>
+
+            {/* Footer */}
+            <Box sx={{ 
+              textAlign: 'center', 
+              mt: 3,
+              pt: 2,
+              borderTop: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              >
+                © 2024 Loja de Tecidos. Todos os direitos reservados.
+              </Typography>
+            </Box>
           </CardContent>
-        </Card>
-      </Box>
-    </Container>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

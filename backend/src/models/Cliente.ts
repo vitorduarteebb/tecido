@@ -22,8 +22,6 @@ export interface ICliente extends Document {
   endereco: IEndereco;
   status: 'ativo' | 'inativo';
   representantes: mongoose.Types.ObjectId[];
-  limiteCredito: number;
-  condicaoPagamento: string;
   usuario: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -50,8 +48,6 @@ const clienteSchema = new Schema<ICliente>({
   endereco: { type: enderecoSchema, required: true },
   status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
   representantes: [{ type: Schema.Types.ObjectId, ref: 'Representante', required: false }],
-  limiteCredito: { type: Number, required: true },
-  condicaoPagamento: { type: String, required: true },
   usuario: { type: Schema.Types.ObjectId, ref: 'Usuario', required: true }
 }, {
   timestamps: true,

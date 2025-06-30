@@ -8,7 +8,8 @@ import {
   Alert,
   Grid,
   Chip,
-  Box
+  Box,
+  Snackbar
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -22,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { clienteService } from '../../services/clienteService';
 import { Cliente } from '../../types';
+import api from '../../services/api';
 
 const DetalhesCliente: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +31,7 @@ const DetalhesCliente: React.FC = () => {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({open: false, message: '', severity: 'success'});
 
   useEffect(() => {
     const carregarCliente = async () => {
@@ -79,6 +82,20 @@ const DetalhesCliente: React.FC = () => {
       style: 'currency',
       currency: 'BRL'
     });
+  };
+
+  const handleResetSenha = async () => {
+    const novaSenha = prompt('Digite a nova senha para este cliente (mínimo 6 caracteres):');
+    if (!novaSenha || novaSenha.length < 6) {
+      setSnackbar({open: true, message: 'A senha deve ter pelo menos 6 caracteres.', severity: 'error'});
+      return;
+    }
+    try {
+      await api.patch(`/clientes/${id}/reset-senha`, { novaSenha });
+      setSnackbar({open: true, message: 'Senha resetada com sucesso!', severity: 'success'});
+    } catch (err: any) {
+      setSnackbar({open: true, message: err?.response?.data?.message || 'Erro ao resetar senha.', severity: 'error'});
+    }
   };
 
   if (loading) {
@@ -147,6 +164,13 @@ const DetalhesCliente: React.FC = () => {
             onClick={() => navigate(`/admin/clientes/${id}/pedidos`)}
           >
             Ver Histórico de Pedidos
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={handleResetSenha}
+          >
+            Resetar Senha
           </Button>
         </div>
       </div>
@@ -225,6 +249,16 @@ const DetalhesCliente: React.FC = () => {
           </Grid>
         </Grid>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({...snackbar, open: false})}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        ContentProps={{
+          style: { backgroundColor: snackbar.severity === 'success' ? '#43a047' : '#d32f2f', color: '#fff' }
+        }}
+      />
     </div>
   );
 };

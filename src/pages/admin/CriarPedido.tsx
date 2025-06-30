@@ -21,7 +21,8 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton
+  IconButton,
+  Box
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,7 +37,6 @@ import { produtoService } from '../../services/produtoService';
 import { pedidoService } from '../../services/pedidoService';
 import { Cliente } from '../../types/cliente';
 import { Produto } from '../../types/produto';
-import Box from '@mui/material/Box';
 
 interface ItemPedido {
   produto: Produto;
@@ -106,7 +106,7 @@ const CriarPedido: React.FC = () => {
     }
     const produto = produtos.find(p => p._id === selectedProduto || p.id?.toString() === selectedProduto);
     if (!produto) return;
-    const precoUnitario = produto.precoAVista || produto.preco?.valor || produto.preco?.valor || 0;
+    const precoUnitario = produto.precoAVista || produto.preco?.valor || 0;
     const novoItem: ItemPedido = {
       produto,
       produtoId: produto._id || produto.id?.toString(),
@@ -140,9 +140,19 @@ const CriarPedido: React.FC = () => {
     try {
       setLoading(true);
       
+      console.log('[CriarPedido] User object:', user);
+      console.log('[CriarPedido] Selected cliente:', selectedCliente);
+      console.log('[CriarPedido] Itens:', itens);
+      
+      if (!user || !(user._id || user.id)) {
+        console.error('Erro ao criar pedido: Usuário não identificado');
+        alert('Erro: usuário não identificado. Faça login novamente.');
+        return;
+      }
+      
       const pedidoData = {
         cliente: selectedCliente,
-        representante: user?.id || '',
+        representante: user._id || user.id || '',
         itens: itens.map(item => ({
           produto: item.produtoId || '',
           quantidade: item.quantidade,
@@ -157,15 +167,18 @@ const CriarPedido: React.FC = () => {
         ...(condicaoPagamento === 'aprazo' ? { detalhePrazo } : {})
       };
 
+      console.log('[CriarPedido] Dados do pedido a serem enviados:', JSON.stringify(pedidoData, null, 2));
+
       await pedidoService.criar(pedidoData);
       setSnackbar({
         open: true,
         message: 'Pedido criado com sucesso!',
         severity: 'success'
       });
-      navigate('/representante/pedidos');
+      navigate('/admin/pedidos');
     } catch (error) {
       console.error('Erro ao criar pedido:', error);
+      console.error('Detalhes do erro:', error.response?.data);
       setSnackbar({
         open: true,
         message: 'Erro ao criar pedido. Tente novamente.',
@@ -183,6 +196,8 @@ const CriarPedido: React.FC = () => {
     }).format(preco);
   };
 
+  const produtoSelecionado = produtos.find(p => p._id === selectedProduto || p.id?.toString() === selectedProduto);
+
   if (loading && clientes.length === 0) {
     return (
       <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -194,7 +209,7 @@ const CriarPedido: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Typography variant="h4" gutterBottom>
-        Criar Novo Pedido
+        Criar Novo Pedido (Admin)
       </Typography>
 
       <form onSubmit={handleSubmit}>
@@ -251,10 +266,11 @@ const CriarPedido: React.FC = () => {
                     <MenuItem value="aprazo">A prazo</MenuItem>
                   </Select>
                 </FormControl>
+
                 {condicaoPagamento === 'aprazo' && (
                   <TextField
                     fullWidth
-                    label="Detalhe do Prazo (ex: 30 dias, 2x, 3x, etc)"
+                    label="Detalhe do Prazo (ex: 30 dias, 2x, etc)"
                     value={detalhePrazo}
                     onChange={e => setDetalhePrazo(e.target.value)}
                     sx={{ mb: 2 }}
@@ -324,7 +340,7 @@ const CriarPedido: React.FC = () => {
                       Preço/metro:
                     </Typography>
                     <Typography variant="subtitle2">
-                      {selectedProduto ? formatarPreco(produtos.find(p => p._id === selectedProduto || p.id?.toString() === selectedProduto)?.precoAVista || produtos.find(p => p._id === selectedProduto || p.id?.toString() === selectedProduto)?.preco?.valor || 0) : '--'}
+                      {produtoSelecionado ? formatarPreco(produtoSelecionado.precoAVista || produtoSelecionado.preco?.valor || 0) : '--'}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 120 }}>
@@ -332,13 +348,7 @@ const CriarPedido: React.FC = () => {
                       Subtotal:
                     </Typography>
                     <Typography variant="subtitle2">
-                      {selectedProduto && metros ? (() => {
-                        const prod = produtos.find(p => p._id === selectedProduto || p.id?.toString() === selectedProduto);
-                        const preco = prod?.precoAVista ?? prod?.preco?.valor ?? 0;
-                        const metrosNum = parseFloat(metros.replace(',', '.'));
-                        if (isNaN(metrosNum)) return '--';
-                        return formatarPreco(preco * metrosNum);
-                      })() : '--'}
+                      {selectedProduto && metros ? formatarPreco((produtoSelecionado?.precoAVista || 0) * parseFloat(metros.replace(',', '.')) || 0) : '--'}
                     </Typography>
                   </Box>
                 </div>
@@ -398,7 +408,7 @@ const CriarPedido: React.FC = () => {
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           <Button
             variant="outlined"
-            onClick={() => navigate('/representante/pedidos')}
+            onClick={() => navigate('/admin/pedidos')}
           >
             Cancelar
           </Button>

@@ -18,6 +18,11 @@ import {
   TableRow,
   LinearProgress,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -25,8 +30,9 @@ import {
   LocalShipping as LocalShippingIcon,
   Warning as WarningIcon,
   Person as PersonIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import api from '../../services/api';
@@ -62,6 +68,9 @@ const Dashboard: React.FC = () => {
     }
   });
   const { user } = useSelector((state: RootState) => state.auth);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -100,22 +109,50 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pendente':
+        return 'warning';
+      case 'aprovado':
+        return 'info';
+      case 'entregue':
+        return 'success';
+      case 'cancelado':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const isPedidoNovo = (pedido: any) => {
+    if (!pedido.data) return false;
+    const dataPedido = new Date(pedido.data);
+    const agora = new Date();
+    const diffHoras = (agora.getTime() - dataPedido.getTime()) / (1000 * 60 * 60);
+    return diffHoras <= 2;
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: 'calc(100vh - 64px)'
+        height: 'calc(100vh - 64px)',
+        flexDirection: 'column',
+        gap: 2
       }}>
-        <CircularProgress />
+        <CircularProgress size={60} />
+        <Typography variant="body1" color="text.secondary">
+          Carregando dashboard...
+        </Typography>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
         <Typography color="error" gutterBottom>
           {error}
         </Typography>
@@ -124,24 +161,38 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+      <Typography 
+        variant={isMobile ? "h5" : "h4"} 
+        gutterBottom 
+        sx={{ 
+          mb: 3,
+          fontWeight: 600,
+          color: 'primary.main'
+        }}
+      >
         Painel Administrativo
       </Typography>
 
       {/* Cards de Métricas */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={isSmallMobile ? 1 : 2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">Faturamento Mensal</Typography>
+                <TrendingUpIcon sx={{ mr: 1, fontSize: { xs: 24, sm: 28 } }} />
+                <Typography variant={isSmallMobile ? "body1" : "h6"} sx={{ fontWeight: 600 }}>
+                  Faturamento Mensal
+                </Typography>
               </Box>
-              <Typography variant="h4">
+              <Typography variant={isSmallMobile ? "h5" : "h4"} sx={{ fontWeight: 700, mb: 1 }}>
                 {formatarMoeda(dashboardData.resumo.faturamentoMes)}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 {dashboardData.resumo.crescimentoFaturamento > 0 ? '+' : ''}
                 {dashboardData.resumo.crescimentoFaturamento}% em relação ao mês anterior
               </Typography>
@@ -150,14 +201,22 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%',
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white'
+          }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <ShoppingCartIcon color="info" sx={{ mr: 1 }} />
-                <Typography variant="h6">Pedidos Pendentes</Typography>
+                <ShoppingCartIcon sx={{ mr: 1, fontSize: { xs: 24, sm: 28 } }} />
+                <Typography variant={isSmallMobile ? "body1" : "h6"} sx={{ fontWeight: 600 }}>
+                  Pedidos Pendentes
+                </Typography>
               </Box>
-              <Typography variant="h4">{dashboardData.resumo.pedidosPendentes}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant={isSmallMobile ? "h5" : "h4"} sx={{ fontWeight: 700, mb: 1 }}>
+                {dashboardData.resumo.pedidosPendentes}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 {dashboardData.resumo.pedidosAguardandoAprovacao} aguardando aprovação
               </Typography>
             </CardContent>
@@ -165,14 +224,22 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <LocalShippingIcon color="success" sx={{ mr: 1 }} />
-                <Typography variant="h6">Pedidos Entregues</Typography>
+                <LocalShippingIcon sx={{ mr: 1, fontSize: { xs: 24, sm: 28 } }} />
+                <Typography variant={isSmallMobile ? "body1" : "h6"} sx={{ fontWeight: 600 }}>
+                  Pedidos Entregues
+                </Typography>
               </Box>
-              <Typography variant="h4">{dashboardData.resumo.pedidosEntregues}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant={isSmallMobile ? "h5" : "h4"} sx={{ fontWeight: 700, mb: 1 }}>
+                {dashboardData.resumo.pedidosEntregues}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Este mês
               </Typography>
             </CardContent>
@@ -180,14 +247,22 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%',
+            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            color: 'white'
+          }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <WarningIcon color="warning" sx={{ mr: 1 }} />
-                <Typography variant="h6">Pedidos Atrasados</Typography>
+                <WarningIcon sx={{ mr: 1, fontSize: { xs: 24, sm: 28 } }} />
+                <Typography variant={isSmallMobile ? "body1" : "h6"} sx={{ fontWeight: 600 }}>
+                  Pedidos Atrasados
+                </Typography>
               </Box>
-              <Typography variant="h4">{dashboardData.resumo.pedidosAtrasados}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant={isSmallMobile ? "h5" : "h4"} sx={{ fontWeight: 700, mb: 1 }}>
+                {dashboardData.resumo.pedidosAtrasados}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Necessitam atenção
               </Typography>
             </CardContent>
@@ -195,114 +270,147 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Gráfico de Faturamento */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Faturamento por Mês
-            </Typography>
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dashboardData.faturamentoMensal}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => formatarMoeda(value)} />
-                  <Legend />
-                  <Bar dataKey="valor" name="Faturamento" fill="#1976d2" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
+      {/* Gráfico e Tabelas */}
+      <Grid container spacing={isSmallMobile ? 1 : 2}>
+        {/* Gráfico de Faturamento */}
+        <Grid item xs={12} lg={8}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Faturamento Mensal
+              </Typography>
+              <Box sx={{ height: isMobile ? 250 : 300, mt: 2 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dashboardData.faturamentoMensal}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="mes" 
+                      fontSize={isSmallMobile ? 10 : 12}
+                    />
+                    <YAxis 
+                      fontSize={isSmallMobile ? 10 : 12}
+                      tickFormatter={(value) => `R$ ${value.toLocaleString()}`}
+                    />
+                    <RechartsTooltip 
+                      formatter={(value: number) => [formatarMoeda(value), 'Faturamento']}
+                      labelStyle={{ fontSize: isSmallMobile ? 12 : 14 }}
+                    />
+                    <Legend />
+                    <Bar dataKey="valor" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
 
         {/* Ranking de Representantes */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Ranking de Representantes
-            </Typography>
-            <List>
-              {dashboardData.rankingRepresentantes.map((rep, index) => (
-                <React.Fragment key={rep.nome}>
-                  <ListItem>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <PersonIcon sx={{ mr: 1 }} />
-                          <Typography variant="body1">{rep.nome}</Typography>
-                        </Box>
-                      }
-                      secondary={
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                            <Typography variant="body2" component="span">
+        <Grid item xs={12} lg={4}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Ranking de Representantes
+              </Typography>
+              <List sx={{ mt: 1 }}>
+                {dashboardData.rankingRepresentantes.slice(0, 5).map((rep, index) => (
+                  <React.Fragment key={rep.nome}>
+                    <ListItem sx={{ px: 0 }}>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {index + 1}. {rep.nome}
+                            </Typography>
+                            <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
                               {formatarMoeda(rep.vendas)}
                             </Typography>
-                            <Typography variant="body2" component="span">
-                              Meta: {formatarMoeda(rep.meta)}
+                          </Box>
+                        }
+                        secondary={
+                          <Box sx={{ mt: 1 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(rep.vendas / rep.meta) * 100}
+                              sx={{
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                                '& .MuiLinearProgress-bar': {
+                                  borderRadius: 3,
+                                  background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
+                                },
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              Meta: {formatarMoeda(rep.meta)} ({Math.round((rep.vendas / rep.meta) * 100)}%)
                             </Typography>
-                          </div>
-                          <LinearProgress
-                            variant="determinate"
-                            value={(rep.vendas / rep.meta) * 100}
-                            sx={{ mt: 1 }}
-                          />
-                        </div>
-                      }
-                    />
-                  </ListItem>
-                  {index < dashboardData.rankingRepresentantes.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          </Paper>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                    {index < dashboardData.rankingRepresentantes.slice(0, 5).length - 1 && <Divider />}
+                  </React.Fragment>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* Tabela de Pedidos Recentes */}
+        {/* Pedidos Recentes */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Pedidos Recentes
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Pedido</TableCell>
-                    <TableCell>Cliente</TableCell>
-                    <TableCell align="right">Valor</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {dashboardData.pedidosRecentes.map((pedido) => (
-                    <TableRow key={pedido.id}>
-                      <TableCell>{pedido.id}</TableCell>
-                      <TableCell>{pedido.cliente}</TableCell>
-                      <TableCell align="right">{formatarMoeda(pedido.valor)}</TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 
-                              pedido.status === 'Entregue'
-                                ? 'success.main'
-                                : pedido.status === 'Pendente'
-                                ? 'warning.main'
-                                : 'info.main',
-                          }}
-                        >
-                          {pedido.status}
-                        </Typography>
-                      </TableCell>
+          <Card>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Pedidos Recentes
+              </Typography>
+              <TableContainer sx={{ mt: 2 }}>
+                <Table size={isSmallMobile ? "small" : "medium"}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Valor</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Ações</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardData.pedidosRecentes.map((pedido) => (
+                      <TableRow key={pedido.id} hover>
+                        <TableCell sx={{ fontSize: isSmallMobile ? '0.75rem' : '0.875rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                          #{pedido.id.slice(-6)}
+                          {isPedidoNovo(pedido) && (
+                            <Chip label="Novo" color="success" size="small" sx={{ ml: 1, fontWeight: 700, fontSize: '0.7rem' }} />
+                          )}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: isSmallMobile ? '0.75rem' : '0.875rem' }}>
+                          {pedido.cliente}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: isSmallMobile ? '0.75rem' : '0.875rem' }}>
+                          {formatarMoeda(pedido.valor)}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={pedido.status}
+                            color={getStatusColor(pedido.status) as any}
+                            size={isSmallMobile ? "small" : "medium"}
+                            sx={{ fontSize: isSmallMobile ? '0.7rem' : '0.75rem' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title="Ver detalhes">
+                            <IconButton size={isSmallMobile ? "small" : "medium"}>
+                              <VisibilityIcon fontSize={isSmallMobile ? "small" : "medium"} />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
     </Box>

@@ -20,6 +20,7 @@ export interface AlteracaoPedido {
 }
 
 export interface IPedido extends Document {
+  numeroPedido: string;
   cliente: mongoose.Types.ObjectId;
   representante: mongoose.Types.ObjectId;
   itens: ItemPedido[];
@@ -56,8 +57,9 @@ const alteracaoPedidoSchema = new Schema({
 }, { _id: false });
 
 const pedidoSchema = new Schema<IPedido>({
+  numeroPedido: { type: String, required: true, unique: true },
   cliente: { type: Schema.Types.ObjectId, ref: 'Cliente', required: true },
-  representante: { type: Schema.Types.ObjectId, ref: 'Representante', required: true },
+  representante: { type: Schema.Types.ObjectId, required: true },
   itens: [itemPedidoSchema],
   valorTotal: { type: Number, required: true },
   condicaoPagamento: { type: String, enum: ['avista', 'aprazo'], required: true },
@@ -72,6 +74,39 @@ const pedidoSchema = new Schema<IPedido>({
   dataComissaoPaga: { type: Date },
   dataFaturamento: { type: Date },
   historicoAlteracoes: { type: [alteracaoPedidoSchema], default: [] },
+});
+
+// Função para gerar número do pedido
+pedidoSchema.pre('save', async function(next) {
+  if (this.isNew && !this.numeroPedido) {
+    try {
+      // Busca o último pedido para pegar o próximo número
+      const ultimoPedido = await mongoose.model('Pedido').findOne({}, {}, { sort: { 'numeroPedido': -1 } });
+      
+      let proximoNumero = 1;
+      if (ultimoPedido && ultimoPedido.numeroPedido) {
+        // Extrai o número do último pedido (formato: PED-2024-0001)
+        const match = ultimoPedido.numeroPedido.match(/PED-(\d{4})-(\d{4})/);
+        if (match) {
+          const ano = parseInt(match[1]);
+          const numero = parseInt(match[2]);
+          const anoAtual = new Date().getFullYear();
+          
+          if (ano === anoAtual) {
+            proximoNumero = numero + 1;
+          }
+        }
+      }
+      
+      const anoAtual = new Date().getFullYear();
+      this.numeroPedido = `PED-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
+    } catch (error) {
+      console.error('Erro ao gerar número do pedido:', error);
+      // Fallback: usar timestamp se houver erro
+      this.numeroPedido = `PED-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+    }
+  }
+  next();
 });
 
 export const Pedido = mongoose.model<IPedido>('Pedido', pedidoSchema); 

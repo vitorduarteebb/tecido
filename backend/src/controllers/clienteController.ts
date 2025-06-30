@@ -36,15 +36,21 @@ export const clienteController = {
     try {
       const { id } = req.params;
       
+      console.log('[clienteController] Buscando cliente com ID:', id);
+      
       const cliente = await Cliente.findById(id)
-        .select('-usuario');
+        .select('-usuario')
+        .lean();
 
       if (!cliente) {
+        console.log('[clienteController] Cliente não encontrado');
         return res.status(404).json({
           success: false,
           message: 'Cliente não encontrado'
         });
       }
+
+      console.log('[clienteController] Cliente encontrado:', JSON.stringify(cliente, null, 2));
 
       return res.json({
         success: true,
@@ -272,6 +278,34 @@ export const clienteController = {
         success: false,
         message: 'Erro ao alterar status do cliente'
       });
+    }
+  },
+
+  async resetarSenha(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { novaSenha } = req.body;
+      if (!novaSenha || novaSenha.length < 6) {
+        return res.status(400).json({ success: false, message: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      }
+      // Busca o cliente
+      const cliente = await Cliente.findById(id);
+      if (!cliente) {
+        return res.status(404).json({ success: false, message: 'Cliente não encontrado.' });
+      }
+      // Busca o usuário associado
+      const usuario = await Usuario.findOne({ email: cliente.email, role: 'CLIENTE' });
+      if (!usuario) {
+        return res.status(404).json({ success: false, message: 'Usuário do cliente não encontrado.' });
+      }
+      // Atualiza a senha
+      const salt = await bcrypt.genSalt(10);
+      usuario.senha = await bcrypt.hash(novaSenha, salt);
+      await usuario.save();
+      return res.json({ success: true, message: 'Senha do cliente resetada com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao resetar senha do cliente:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao resetar senha do cliente.' });
     }
   }
 }; 

@@ -1,26 +1,87 @@
 import { Request, Response } from 'express';
 import { Pedido } from '../models/Pedido';
+import { Produto } from '../models/Produto';
 import mongoose from 'mongoose';
 import Representante from '../models/Representante';
+import Admin from '../models/Admin';
+
+// Função auxiliar para buscar o nome do representante/admin
+const buscarNomeRepresentante = async (representanteId: string) => {
+  try {
+    // Primeiro tenta buscar como representante
+    const representante = await Representante.findById(representanteId).select('nome email').lean();
+    if (representante) {
+      return { nome: representante.nome, email: representante.email, tipo: 'representante' };
+    }
+    
+    // Se não encontrar, tenta buscar como admin
+    const admin = await Admin.findById(representanteId).select('nome email').lean();
+    if (admin) {
+      return { nome: admin.nome, email: admin.email, tipo: 'admin' };
+    }
+    
+    return { nome: 'Não encontrado', email: '', tipo: 'desconhecido' };
+  } catch (error) {
+    console.error('Erro ao buscar representante/admin:', error);
+    return { nome: 'Erro', email: '', tipo: 'erro' };
+  }
+};
 
 export const pedidoController = {
   criar: async (req: Request, res: Response) => {
     try {
-      const { itens, condicaoPagamento, detalhePrazo } = req.body;
+      console.log('[pedidoController] Iniciando criação de pedido');
+      console.log('[pedidoController] Dados recebidos:', JSON.stringify(req.body, null, 2));
+      
+      const { itens, condicaoPagamento, detalhePrazo, representante } = req.body;
+      
+      console.log('[pedidoController] Representante ID:', representante);
+      
+      // Validar se o representante existe (pode ser admin ou representante)
+      const representanteInfo = await buscarNomeRepresentante(representante);
+      if (representanteInfo.tipo === 'desconhecido') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Representante/Admin não encontrado' 
+        });
+      }
+      
       if (!['avista', 'aprazo'].includes(condicaoPagamento)) {
         return res.status(400).json({ success: false, message: 'Condição de pagamento inválida' });
       }
       if (condicaoPagamento === 'aprazo' && (!detalhePrazo || detalhePrazo.trim() === '')) {
         return res.status(400).json({ success: false, message: 'Detalhe do prazo é obrigatório para condição a prazo' });
       }
+      
       let valorTotalPedido = 0;
       let pesoTotalPedido = 0;
+      
+      console.log('[pedidoController] Processando itens...');
       const itensAtualizados = await Promise.all(itens.map(async (item: any) => {
-        const produto = await (await import('../models/Produto')).Produto.findById(item.produto);
+        console.log('[pedidoController] Processando item:', JSON.stringify(item, null, 2));
+        const produto = await Produto.findById(item.produto);
         if (!produto) throw new Error('Produto não encontrado');
+        
+        console.log('[pedidoController] Produto encontrado:', {
+          id: produto._id,
+          nome: produto.nome,
+          precoAVista: produto.precoAVista,
+          precoAPrazo: produto.precoAPrazo,
+          pesoPorMetro: produto.pesoPorMetro
+        });
+        
         const valorUnitario = condicaoPagamento === 'avista' ? produto.precoAVista : produto.precoAPrazo;
         const valorTotal = valorUnitario * item.quantidade;
         const pesoItem = produto.pesoPorMetro * item.quantidade;
+        
+        console.log('[pedidoController] Cálculos do item:', {
+          valorUnitario,
+          quantidade: item.quantidade,
+          valorTotal,
+          pesoItem,
+          condicaoPagamento
+        });
+        
         valorTotalPedido += valorTotal;
         pesoTotalPedido += pesoItem;
         return {
@@ -29,16 +90,59 @@ export const pedidoController = {
           valorTotal
         };
       }));
-      const pedido = await Pedido.create({
-        ...req.body,
-        itens: itensAtualizados,
+      
+      console.log('[pedidoController] Itens processados, criando pedido...');
+      console.log('[pedidoController] Dados do pedido a ser criado:', {
+        representante,
         valorTotal: valorTotalPedido,
         pesoTotal: pesoTotalPedido,
-        detalhePrazo: condicaoPagamento === 'aprazo' ? detalhePrazo : undefined
+        itensCount: itensAtualizados.length
       });
+      
+      const pedidoData = {
+        ...req.body,
+        // Usar valores do frontend se estiverem corretos, senão usar os calculados
+        itens: req.body.itens && req.body.itens.length > 0 ? req.body.itens : itensAtualizados,
+        valorTotal: req.body.valorTotal && req.body.valorTotal > 0 ? req.body.valorTotal : valorTotalPedido,
+        pesoTotal: req.body.pesoTotal !== undefined ? req.body.pesoTotal : pesoTotalPedido,
+        status: 'Em Separação',
+        detalhePrazo: condicaoPagamento === 'aprazo' ? detalhePrazo : undefined
+      };
+      // Remover numeroPedido se vier do frontend
+      delete pedidoData.numeroPedido;
+      
+      // Gerar número do pedido manualmente
+      const ultimoPedido = await Pedido.findOne({}, {}, { sort: { 'numeroPedido': -1 } });
+      let proximoNumero = 1;
+      if (ultimoPedido && ultimoPedido.numeroPedido) {
+        const match = ultimoPedido.numeroPedido.match(/PED-(\d{4})-(\d{4})/);
+        if (match) {
+          const ano = parseInt(match[1]);
+          const numero = parseInt(match[2]);
+          const anoAtual = new Date().getFullYear();
+          
+          if (ano === anoAtual) {
+            proximoNumero = numero + 1;
+          }
+        }
+      }
+      const anoAtual = new Date().getFullYear();
+      pedidoData.numeroPedido = `PED-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
+      
+      console.log('[pedidoController] Número do pedido gerado:', pedidoData.numeroPedido);
+      
+      console.log('[pedidoController] Dados completos do pedido:', JSON.stringify(pedidoData, null, 2));
+      
+      const pedido = new Pedido(pedidoData);
+      
+      console.log('[pedidoController] Instância do pedido criada, salvando...');
+      await pedido.save();
+      
+      console.log('[pedidoController] Pedido criado com sucesso:', pedido._id);
       return res.status(201).json({ success: true, data: pedido });
     } catch (error) {
-      return res.status(500).json({ success: false, message: 'Erro ao criar pedido', error });
+      console.error('[pedidoController] Erro detalhado ao criar pedido:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao criar pedido', error: error.message });
     }
   },
   listar: async (req: Request, res: Response) => {
@@ -46,10 +150,26 @@ export const pedidoController = {
       console.log('[pedidoController] Iniciando listagem de pedidos');
       const pedidos = await Pedido.find()
         .populate('cliente', 'razaoSocial nomeFantasia cnpj')
-        .populate('representante', 'nome email')
         .populate('itens.produto', 'nome codigo preco');
-      console.log('[pedidoController] Pedidos encontrados:', pedidos.length);
-      return res.json({ success: true, data: pedidos, count: pedidos.length });
+      
+      // Processar representantes/admins manualmente
+      const pedidosComRepresentante = await Promise.all(
+        pedidos.map(async (pedido) => {
+          const representanteInfo = await buscarNomeRepresentante(pedido.representante.toString());
+          return {
+            ...pedido.toObject(),
+            representante: {
+              _id: pedido.representante,
+              nome: representanteInfo.nome,
+              email: representanteInfo.email,
+              tipo: representanteInfo.tipo
+            }
+          };
+        })
+      );
+      
+      console.log('[pedidoController] Pedidos encontrados:', pedidosComRepresentante.length);
+      return res.json({ success: true, data: pedidosComRepresentante, count: pedidosComRepresentante.length });
     } catch (error) {
       console.error('[pedidoController] Erro ao listar pedidos:', error);
       return res.status(500).json({ success: false, message: 'Erro ao listar pedidos', error });
@@ -58,7 +178,7 @@ export const pedidoController = {
   listarPorRepresentante: async (req: Request, res: Response) => {
     try {
       const { representanteId } = req.params;
-      const pedidos = await Pedido.find({ representante: new mongoose.Types.ObjectId(representanteId), status: { $in: ['Faturado', 'faturado'] } })
+      const pedidos = await Pedido.find({ representante: new mongoose.Types.ObjectId(representanteId) })
         .populate('cliente', 'razaoSocial nomeFantasia cnpj')
         .populate('representante', 'comissao nome email')
         .populate('itens.produto', 'nome codigo preco');
@@ -82,10 +202,49 @@ export const pedidoController = {
     try {
       const pedido = await Pedido.findById(req.params.id)
         .populate('cliente', 'razaoSocial nomeFantasia cnpj')
-        .populate('representante', 'nome email')
         .populate('itens.produto', 'nome codigo preco');
+      
       if (!pedido) return res.status(404).json({ success: false, message: 'Pedido não encontrado' });
-      return res.json({ success: true, data: pedido });
+      
+      // Processar representante/admin manualmente
+      const representanteInfo = await buscarNomeRepresentante(pedido.representante.toString());
+      const pedidoComRepresentante = {
+        ...pedido.toObject(),
+        representante: {
+          _id: pedido.representante,
+          nome: representanteInfo.nome,
+          email: representanteInfo.email,
+          tipo: representanteInfo.tipo
+        }
+      };
+      
+      return res.json({ success: true, data: pedidoComRepresentante });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: 'Erro ao obter pedido', error });
+    }
+  },
+  obterPorNumero: async (req: Request, res: Response) => {
+    try {
+      const { numeroPedido } = req.params;
+      const pedido = await Pedido.findOne({ numeroPedido })
+        .populate('cliente', 'razaoSocial nomeFantasia cnpj')
+        .populate('itens.produto', 'nome codigo preco');
+      
+      if (!pedido) return res.status(404).json({ success: false, message: 'Pedido não encontrado' });
+      
+      // Processar representante/admin manualmente
+      const representanteInfo = await buscarNomeRepresentante(pedido.representante.toString());
+      const pedidoComRepresentante = {
+        ...pedido.toObject(),
+        representante: {
+          _id: pedido.representante,
+          nome: representanteInfo.nome,
+          email: representanteInfo.email,
+          tipo: representanteInfo.tipo
+        }
+      };
+      
+      return res.json({ success: true, data: pedidoComRepresentante });
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Erro ao obter pedido', error });
     }

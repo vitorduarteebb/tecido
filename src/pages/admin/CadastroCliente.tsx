@@ -34,6 +34,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import InputMask from 'react-input-mask';
 import { clienteService } from '../../services/clienteService';
+import { representanteService } from '../../services/representanteService';
 
 interface Endereco {
   cep: string;
@@ -104,6 +105,9 @@ const CadastroCliente = () => {
   const [initialLoading, setInitialLoading] = useState(isEditMode);
   const [error, setError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [representantes, setRepresentantes] = useState<{id: string, nome: string}[]>([]);
+  const [loadingReps, setLoadingReps] = useState(false);
+  const [erroReps, setErroReps] = useState('');
   
   const [formData, setFormData] = useState<Cliente>({
     razaoSocial: '',
@@ -188,6 +192,14 @@ const CadastroCliente = () => {
 
     carregarCliente();
   }, [id]);
+
+  useEffect(() => {
+    setLoadingReps(true);
+    representanteService.listar()
+      .then(reps => setRepresentantes(reps))
+      .catch(() => setErroReps('Erro ao carregar representantes'))
+      .finally(() => setLoadingReps(false));
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -288,8 +300,8 @@ const CadastroCliente = () => {
         }
         break;
       case 3: // Financeiro
-        if (!formData.representante || formData.limiteCredito <= 0 || !formData.condicaoPagamento) {
-          setError('Preencha todos os campos obrigatórios');
+        if (!formData.representante) {
+          setError('Selecione um representante ou deixe em branco para nenhum.');
           return false;
         }
         break;
@@ -593,46 +605,21 @@ const CadastroCliente = () => {
       label: 'Informações Comerciais',
       content: (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Representante"
-              name="representante"
-              value={formData.representante}
-              onChange={handleChange}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Limite de Crédito"
-              name="limiteCredito"
-              value={formData.limiteCredito}
-              onChange={handleChange}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-              }}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Condição de Pagamento</InputLabel>
+          <Grid item xs={12} sm={12}>
+            <FormControl fullWidth required disabled={loadingReps} error={!!erroReps}>
+              <InputLabel>Representante</InputLabel>
               <Select
-                name="condicaoPagamento"
-                value={formData.condicaoPagamento}
-                label="Condição de Pagamento"
+                name="representante"
+                value={formData.representante}
+                label="Representante"
                 onChange={handleSelectChange}
-                required
               >
-                {condicoesPagamento.map((condicao) => (
-                  <MenuItem key={condicao} value={condicao}>
-                    {condicao}
-                  </MenuItem>
+                <MenuItem value="">Nenhum</MenuItem>
+                {representantes.map((rep) => (
+                  <MenuItem key={rep.id} value={rep.id}>{rep.nome}</MenuItem>
                 ))}
               </Select>
+              {erroReps && <Typography color="error" variant="caption">{erroReps}</Typography>}
             </FormControl>
           </Grid>
         </Grid>

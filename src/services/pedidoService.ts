@@ -11,6 +11,7 @@ export interface ItemPedido {
 export interface Pedido {
   _id?: string;
   id?: string;
+  numeroPedido?: string;
   cliente: string | { razaoSocial?: string; nomeFantasia?: string; nome?: string; cnpj?: string; id?: string };
   representante: string | { nome?: string; razaoSocial?: string; id?: string };
   itens: ItemPedido[];
@@ -52,6 +53,10 @@ export const pedidoService = {
   },
   obter: async (id: string): Promise<Pedido> => {
     const response: AxiosResponse<ApiResponse<Pedido>> = await api.get(`/pedidos/${id}`);
+    return response.data.data;
+  },
+  obterPorNumero: async (numeroPedido: string): Promise<Pedido> => {
+    const response: AxiosResponse<ApiResponse<Pedido>> = await api.get(`/pedidos/numero/${numeroPedido}`);
     return response.data.data;
   },
   atualizarStatus: async (id: string, status: string) => {

@@ -17,8 +17,8 @@ import ListaRepresentantes from './pages/admin/ListaRepresentantes';
 import RepDashboard from './pages/representante/Dashboard';
 import ClienteDashboard from './pages/cliente/Dashboard';
 import Catalogo from './pages/cliente/Catalogo';
-import NotasFiscais from './pages/cliente/NotasFiscais';
 import CriarPedido from './pages/representante/CriarPedido';
+import CriarPedidoAdmin from './pages/admin/CriarPedido';
 import DetalhePedido from './pages/DetalhePedido';
 import CadastroCliente from './pages/admin/CadastroCliente';
 import CadastroProduto from './pages/admin/CadastroProduto';
@@ -101,6 +101,11 @@ function App() {
             <Route path="/admin/pedidos" element={
               <PrivateRoute requiredRole="ADMINISTRADOR">
                 <ListaPedidos />
+              </PrivateRoute>
+            } />
+            <Route path="/admin/criar-pedido" element={
+              <PrivateRoute requiredRole="ADMINISTRADOR">
+                <CriarPedidoAdmin />
               </PrivateRoute>
             } />
             <Route path="/admin/pedidos/:id" element={
@@ -189,17 +194,12 @@ function App() {
             } />
             <Route path="/cliente/pedidos" element={
               <PrivateRoute requiredRole="CLIENTE">
-                <ListaPedidos />
+                <ClienteDashboard />
               </PrivateRoute>
             } />
             <Route path="/cliente/catalogo" element={
               <PrivateRoute requiredRole="CLIENTE">
                 <Catalogo />
-              </PrivateRoute>
-            } />
-            <Route path="/cliente/notas-fiscais" element={
-              <PrivateRoute requiredRole="CLIENTE">
-                <NotasFiscais />
               </PrivateRoute>
             } />
 

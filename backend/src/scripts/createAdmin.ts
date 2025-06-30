@@ -20,7 +20,7 @@ const createAdmin = async () => {
       senha: hashedPassword,
       role: UserRole.ADMINISTRADOR
     });
-
+    
     await admin.save();
     console.log('Admin user created successfully');
     process.exit(0);

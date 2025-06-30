@@ -9,6 +9,10 @@ import { Produto } from '../../types/produto';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Autocomplete from '@mui/material/Autocomplete';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import PedidoPDF from '../../components/PedidoPDF';
+import { clienteService } from '../../services/clienteService';
+import { Cliente } from '../../types/cliente';
 
 const statusOptions = [
   'Em Separação',
@@ -36,6 +40,7 @@ const DetalhesPedido: React.FC = () => {
   const navigate = useNavigate();
   const [pedido, setPedido] = useState<PedidoComHistorico | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingCliente, setLoadingCliente] = useState(false);
   const [error, setError] = useState('');
   const { enqueueSnackbar } = useSnackbar();
   const [novoStatus, setNovoStatus] = useState<string>('');
@@ -47,12 +52,23 @@ const DetalhesPedido: React.FC = () => {
   useEffect(() => {
     if (id) {
       setLoading(true);
+      setLoadingCliente(false);
       pedidoService.obter(id)
-        .then((p) => {
-          console.log('[DetalhesPedido] Pedido carregado:', p);
-          setPedido({ ...p, status: p.status || 'Em Separação' });
+        .then(async (p) => {
+          let clienteCompleto = p.cliente;
+          if (typeof p.cliente === 'string') {
+            setLoadingCliente(true);
+            try {
+              clienteCompleto = await clienteService.obterPorId(p.cliente);
+            } catch (e) {
+              clienteCompleto = null; // se não encontrar, seta como null
+            }
+            setLoadingCliente(false);
+          }
+          console.log('[DetalhesPedido] Cliente retornado:', clienteCompleto);
+          setPedido({ ...p, cliente: clienteCompleto, status: p.status || 'Em Separação' });
           setNovoStatus(p.status || 'Em Separação');
-          setPedidoEdit({ ...p });
+          setPedidoEdit({ ...p, cliente: clienteCompleto });
         })
         .catch((err) => {
           console.error('[DetalhesPedido] Erro ao carregar pedido:', err);
@@ -218,7 +234,69 @@ const DetalhesPedido: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mb: 2 }}>Voltar</Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mr: 2 }}>Voltar</Button>
+        {loadingCliente ? (
+          <Button variant="contained" color="secondary" sx={{ ml: 2 }} disabled>
+            Carregando dados do cliente...
+          </Button>
+        ) : pedido && typeof pedido.cliente === 'object' ? (
+          <PDFDownloadLink
+            document={
+              <PedidoPDF
+                numeroPedido={pedido.numeroPedido || pedido.id || pedido._id || ''}
+                cliente={pedido.cliente ? {
+                  nome: pedido.cliente.razaoSocial || pedido.cliente.nomeFantasia || '-',
+                  cnpj: pedido.cliente.cnpj || '-',
+                  endereco: pedido.cliente.endereco ? `${pedido.cliente.endereco.logradouro || ''}, ${pedido.cliente.endereco.numero || ''} ${pedido.cliente.endereco.complemento || ''}, ${pedido.cliente.endereco.bairro || ''}, ${pedido.cliente.endereco.cidade || ''} - ${pedido.cliente.endereco.estado || ''}, CEP: ${pedido.cliente.endereco.cep || ''}` : '-',
+                  telefone: pedido.cliente.telefone || pedido.cliente.celular || '-',
+                  enderecoEntrega: pedido.cliente.endereco ? `${pedido.cliente.endereco.logradouro || ''}, ${pedido.cliente.endereco.numero || ''} ${pedido.cliente.endereco.complemento || ''}, ${pedido.cliente.endereco.bairro || ''}, ${pedido.cliente.endereco.cidade || ''} - ${pedido.cliente.endereco.estado || ''}, CEP: ${pedido.cliente.endereco.cep || ''}` : '-',
+                } : {
+                  nome: '-',
+                  cnpj: '-',
+                  endereco: '-',
+                  telefone: '-',
+                  enderecoEntrega: '-',
+                }}
+                produtos={(pedido.itens || []).map((item: any) => {
+                  let produtoObj = item.produto;
+                  if (typeof item.produto === 'string') {
+                    produtoObj = produtos.find(p => p._id === item.produto || p.id === item.produto || p.nome === item.produto) || { nome: item.produto };
+                  }
+                  return {
+                    id: produtoObj._id || produtoObj.id || item.produto,
+                    nome: produtoObj.nome || '-',
+                    codigo: produtoObj.codigo || '-',
+                    referencia: produtoObj.codigo || '-',
+                    imagemUrl: produtoObj.imagem || undefined,
+                    quantidade: item.quantidade,
+                    valorUnitario: item.valorUnitario,
+                    subtotal: item.quantidade * item.valorUnitario,
+                    observacao: item.observacao || '-',
+                  };
+                })}
+                valorTotal={pedido.valorTotal || (pedido.itens?.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0) || 0)}
+                dataPedido={pedido.dataCriacao || pedido.data || new Date().toISOString()}
+                dataPrevisao={pedido.dataCriacao || pedido.data || new Date().toISOString()}
+                formaPagamento={pedido.condicaoPagamento || '-'}
+                condicaoPagamento={pedido.condicaoPagamento || '-'}
+                detalhePrazo={pedido.detalhePrazo || ''}
+                representante={pedido.representante ? {
+                  nome: (typeof pedido.representante === 'object') ? (pedido.representante.nome || pedido.representante.razaoSocial || '-') : (pedido.representante || '-')
+                } : undefined}
+                observacoes={pedido.observacoes || ''}
+              />
+            }
+            fileName={`Pedido-${pedido.numeroPedido || pedido.id || pedido._id || ''}.pdf`}
+          >
+            {({ loading }) => (
+              <Button variant="contained" color="secondary" sx={{ ml: 2 }} disabled={loading}>
+                {loading ? 'Gerando PDF...' : 'Baixar PDF'}
+              </Button>
+            )}
+          </PDFDownloadLink>
+        ) : null}
+      </Box>
       <Typography variant="h5" gutterBottom>Detalhes do Pedido</Typography>
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">

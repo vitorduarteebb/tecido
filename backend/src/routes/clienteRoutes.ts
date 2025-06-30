@@ -18,5 +18,6 @@ router.post('/', clienteController.criar);
 router.put('/:id', clienteController.atualizar);
 router.delete('/:id', clienteController.excluir);
 router.patch('/:id/status', clienteController.alterarStatus);
+router.patch('/:id/reset-senha', clienteController.resetarSenha);
 
 export default router; 
