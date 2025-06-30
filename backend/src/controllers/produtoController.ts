@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
-import { Produto } from '../models/Produto';
+import { Produto } from '../models';
 
 export const produtoController = {
   async listar(req: Request, res: Response) {
     try {
       console.log('[produtoController] Iniciando listagem de produtos');
-      const produtos = await Produto.find().sort({ dataCadastro: -1 });
+      const produtos = await Produto.findAll({
+        order: [['dataCadastro', 'DESC']]
+      });
       console.log('[produtoController] Produtos encontrados:', produtos.length);
       return res.json({ success: true, data: produtos, count: produtos.length });
     } catch (error) {
@@ -17,7 +19,7 @@ export const produtoController = {
   async obter(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const produto = await Produto.findById(id);
+      const produto = await Produto.findByPk(id);
       if (!produto) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado' });
       }
@@ -49,10 +51,11 @@ export const produtoController = {
       if (precoAVista === undefined || precoAPrazo === undefined || pesoPorMetro === undefined) {
         return res.status(400).json({ success: false, message: 'Campos obrigatórios: precoAVista, precoAPrazo, pesoPorMetro' });
       }
-      const produtoAtualizado = await Produto.findByIdAndUpdate(id, req.body, { new: true });
-      if (!produtoAtualizado) {
+      const produto = await Produto.findByPk(id);
+      if (!produto) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado' });
       }
+      const produtoAtualizado = await produto.update(req.body);
       return res.json({ success: true, data: produtoAtualizado, message: 'Produto atualizado com sucesso' });
     } catch (error) {
       console.error('Erro ao atualizar produto:', error);
@@ -63,10 +66,11 @@ export const produtoController = {
   async excluir(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const produto = await Produto.findByIdAndDelete(id);
+      const produto = await Produto.findByPk(id);
       if (!produto) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado' });
       }
+      await produto.destroy();
       return res.json({ success: true, message: 'Produto excluído com sucesso' });
     } catch (error) {
       console.error('Erro ao excluir produto:', error);

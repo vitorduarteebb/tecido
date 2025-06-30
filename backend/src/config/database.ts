@@ -1,22 +1,26 @@
-import mongoose from 'mongoose';
+import { Sequelize } from 'sequelize';
+import path from 'path';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const config = {
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/tecidos',
-  jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
-  port: process.env.PORT || 3001
-};
+const dbPath = path.join(__dirname, '../../database.sqlite');
+
+export const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: dbPath,
+  logging: false
+});
 
 export const connectDB = async () => {
   try {
-    await mongoose.connect(config.mongoUri);
-    console.log('MongoDB connected successfully');
+    await sequelize.authenticate();
+    await sequelize.sync({ alter: true });
+    console.log('SQLite conectado com sucesso');
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
+    console.error('Erro ao conectar SQLite:', error);
     process.exit(1);
   }
 };
 
-export default config; 
+export default sequelize; 

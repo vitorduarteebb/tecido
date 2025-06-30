@@ -19,4 +19,5 @@ router.post('/', clienteController_1.clienteController.criar);
 router.put('/:id', clienteController_1.clienteController.atualizar);
 router.delete('/:id', clienteController_1.clienteController.excluir);
 router.patch('/:id/status', clienteController_1.clienteController.alterarStatus);
+router.patch('/:id/reset-senha', clienteController_1.clienteController.resetarSenha);
 exports.default = router;

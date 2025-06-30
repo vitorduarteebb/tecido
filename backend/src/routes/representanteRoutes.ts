@@ -16,8 +16,5 @@ router.post('/', representanteController.criar);
 router.put('/:id', representanteController.atualizar);
 router.delete('/:id', representanteController.excluir);
 router.patch('/:id/status', representanteController.alterarStatus);
-router.get('/:id/clientes', representanteController.listarClientes);
-router.post('/:id/clientes', representanteController.vincularClientes);
-router.delete('/:id/clientes/:clienteId', representanteController.desvincularCliente);
 
 export default router; 

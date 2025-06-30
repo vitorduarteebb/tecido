@@ -14,4 +14,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.config = void 0;
 __exportStar(require("./database"), exports);
+exports.config = {
+    jwtSecret: process.env.JWT_SECRET || 'sua-chave-secreta-aqui',
+    port: process.env.PORT || 3001,
+    nodeEnv: process.env.NODE_ENV || 'development',
+};

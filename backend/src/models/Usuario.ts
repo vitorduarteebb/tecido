@@ -1,21 +1,49 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 
-export type Role = 'ADMINISTRADOR' | 'REPRESENTANTE' | 'CLIENTE';
-
-export interface IUsuario extends Document {
+export interface IUsuario {
+  id?: string;
   email: string;
   senha: string;
-  role: Role;
-  createdAt: Date;
-  updatedAt: Date;
+  role: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const usuarioSchema = new Schema<IUsuario>({
-  email: { type: String, required: true, unique: true },
-  senha: { type: String, required: true },
-  role: { type: String, enum: ['ADMINISTRADOR', 'REPRESENTANTE', 'CLIENTE'], required: true }
+export interface UsuarioCreationAttributes extends Optional<IUsuario, 'id' | 'createdAt' | 'updatedAt'> {}
+
+export class Usuario extends Model<IUsuario, UsuarioCreationAttributes> implements IUsuario {
+  public id!: string;
+  public email!: string;
+  public senha!: string;
+  public role!: string;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Usuario.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  senha: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  role: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 }, {
-  timestamps: true
+  sequelize,
+  tableName: 'usuarios',
+  timestamps: true,
 });
 
-export const Usuario = mongoose.model<IUsuario>('Usuario', usuarioSchema); 
+export default Usuario; 

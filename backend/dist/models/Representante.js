@@ -1,63 +1,65 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = __importDefault(require("mongoose"));
-const representanteSchema = new mongoose_1.default.Schema({
+exports.Representante = void 0;
+const sequelize_1 = require("sequelize");
+const database_1 = require("../config/database");
+class Representante extends sequelize_1.Model {
+}
+exports.Representante = Representante;
+Representante.init({
+    id: {
+        type: sequelize_1.DataTypes.UUID,
+        defaultValue: sequelize_1.DataTypes.UUIDV4,
+        primaryKey: true,
+    },
     nome: {
-        type: String,
-        required: true,
-        trim: true
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
     },
     email: {
-        type: String,
-        required: true,
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
         unique: true,
-        trim: true,
-        lowercase: true
     },
     telefone: {
-        type: String,
-        required: true,
-        trim: true
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
     },
     regiao: {
-        type: String,
-        required: true,
-        trim: true
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
     },
     status: {
-        type: String,
-        enum: ['Ativo', 'Inativo'],
-        default: 'Ativo',
+        type: sequelize_1.DataTypes.ENUM('Ativo', 'Inativo'),
+        allowNull: false,
+        defaultValue: 'Ativo',
     },
     senha: {
-        type: String,
-        required: true,
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
     },
     dataCriacao: {
-        type: Date,
-        default: Date.now,
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: false,
+        defaultValue: sequelize_1.DataTypes.NOW,
     },
     dataAtualizacao: {
-        type: Date,
-        default: Date.now,
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: false,
+        defaultValue: sequelize_1.DataTypes.NOW,
     },
     comissao: {
-        type: Number,
-        default: 0,
-        min: 0,
-        max: 100
+        type: sequelize_1.DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0,
     },
+}, {
+    sequelize: database_1.sequelize,
+    tableName: 'representantes',
+    timestamps: true,
 });
-// Middleware para atualizar a data de atualização
-representanteSchema.pre('save', function (next) {
-    if (this.isModified()) {
-        this.dataAtualizacao = new Date();
-    }
-    next();
+// Hook para atualizar dataAtualizacao
+Representante.beforeUpdate((representante) => {
+    representante.dataAtualizacao = new Date();
 });
-const Representante = mongoose_1.default.model('Representante', representanteSchema);
 exports.default = Representante;
-// Observação: A relação de clientes vinculados é feita pelo campo 'representantes' no model Cliente. 

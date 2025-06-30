@@ -1,69 +1,117 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 
-export interface IProduto extends Document {
+export interface IProduto {
+  id?: string;
   codigo: string;
   nome: string;
   descricao: string;
-  imagem: string;
-  especificacoes: {
-    composicao: string;
-    largura: string;
-    gramatura: string;
-    rendimento: string;
-    cor: string;
-    padronagem: string;
-  };
-  preco: {
-    valor: number;
-    unidade: 'metro' | 'kg';
-  };
+  imagem?: string;
+  especificacoes: any;
+  preco: any;
   precoAVista: number;
   precoAPrazo: number;
   pesoPorMetro: number;
-  estoque: {
-    quantidade: number;
-    unidade: 'metro' | 'kg';
-  };
+  estoque: any;
   categoria: string;
-  tags: string[];
-  dataCadastro: Date;
-  status: 'ativo' | 'inativo';
+  tags?: any[];
+  dataCadastro?: Date;
+  status: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const especificacoesSchema = new Schema({
-  composicao: { type: String, required: true },
-  largura: { type: String, required: true },
-  gramatura: { type: String, required: true },
-  rendimento: { type: String, required: true },
-  cor: { type: String, required: true },
-  padronagem: { type: String, required: true },
-}, { _id: false });
+export interface ProdutoCreationAttributes extends Optional<IProduto, 'id' | 'status' | 'dataCadastro' | 'createdAt' | 'updatedAt'> {}
 
-const precoSchema = new Schema({
-  valor: { type: Number, required: true },
-  unidade: { type: String, enum: ['metro', 'kg'], required: true },
-}, { _id: false });
+export class Produto extends Model<IProduto, ProdutoCreationAttributes> implements IProduto {
+  public id!: string;
+  public codigo!: string;
+  public nome!: string;
+  public descricao!: string;
+  public imagem?: string;
+  public especificacoes!: any;
+  public preco!: any;
+  public precoAVista!: number;
+  public precoAPrazo!: number;
+  public pesoPorMetro!: number;
+  public estoque!: any;
+  public categoria!: string;
+  public tags?: any[];
+  public dataCadastro!: Date;
+  public status!: string;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
 
-const estoqueSchema = new Schema({
-  quantidade: { type: Number, required: true },
-  unidade: { type: String, enum: ['metro', 'kg'], required: true },
-}, { _id: false });
-
-const produtoSchema = new Schema<IProduto>({
-  codigo: { type: String, required: true, unique: true },
-  nome: { type: String, required: true },
-  descricao: { type: String, required: true },
-  imagem: { type: String },
-  especificacoes: { type: especificacoesSchema, required: true },
-  preco: { type: precoSchema, required: true },
-  precoAVista: { type: Number, required: true },
-  precoAPrazo: { type: Number, required: true },
-  pesoPorMetro: { type: Number, required: true },
-  estoque: { type: estoqueSchema, required: true },
-  categoria: { type: String, required: true },
-  tags: { type: [String], default: [] },
-  dataCadastro: { type: Date, default: Date.now },
-  status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
+Produto.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  codigo: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  nome: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  descricao: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  imagem: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  especificacoes: {
+    type: DataTypes.JSON,
+    allowNull: false,
+  },
+  preco: {
+    type: DataTypes.JSON,
+    allowNull: false,
+  },
+  precoAVista: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  precoAPrazo: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  pesoPorMetro: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  estoque: {
+    type: DataTypes.JSON,
+    allowNull: false,
+  },
+  categoria: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  tags: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+  },
+  dataCadastro: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  status: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'ativo',
+  },
+}, {
+  sequelize,
+  tableName: 'produtos',
+  timestamps: false,
 });
 
-export const Produto = mongoose.model<IProduto>('Produto', produtoSchema); 
+export default Produto; 

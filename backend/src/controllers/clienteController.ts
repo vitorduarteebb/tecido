@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { Cliente, ICliente } from '../models/Cliente';
-import { Usuario } from '../models/Usuario';
+import { Cliente, Usuario } from '../models';
 import bcrypt from 'bcrypt';
 
 export const clienteController = {
@@ -10,16 +9,20 @@ export const clienteController = {
       let clientes;
 
       if (user && user.role === 'ADMINISTRADOR') {
-        clientes = await Cliente.find().lean();
+        clientes = await Cliente.findAll();
       } else if (user && user.role === 'REPRESENTANTE') {
-        clientes = await Cliente.find({ representantes: user.id }).lean();
+        clientes = await Cliente.findAll({
+          where: {
+            representantes: user.id
+          }
+        });
       } else {
         return res.status(403).json({ success: false, message: 'Acesso negado' });
       }
 
       // Garante que todos tenham o campo representantes (array)
       const clientesComRepresentantes = clientes.map(c => ({
-        ...c,
+        ...c.toJSON(),
         representantes: c.representantes || []
       }));
       return res.json({ success: true, data: clientesComRepresentantes, count: clientesComRepresentantes.length });
@@ -38,9 +41,7 @@ export const clienteController = {
       
       console.log('[clienteController] Buscando cliente com ID:', id);
       
-      const cliente = await Cliente.findById(id)
-        .select('-usuario')
-        .lean();
+      const cliente = await Cliente.findByPk(id);
 
       if (!cliente) {
         console.log('[clienteController] Cliente não encontrado');
@@ -50,7 +51,7 @@ export const clienteController = {
         });
       }
 
-      console.log('[clienteController] Cliente encontrado:', JSON.stringify(cliente, null, 2));
+      console.log('[clienteController] Cliente encontrado:', JSON.stringify(cliente.toJSON(), null, 2));
 
       return res.json({
         success: true,
@@ -84,7 +85,7 @@ export const clienteController = {
       } = req.body;
 
       // Verifica se já existe um cliente com o mesmo CNPJ
-      const clienteExistente = await Cliente.findOne({ cnpj });
+      const clienteExistente = await Cliente.findOne({ where: { cnpj } });
 
       if (clienteExistente) {
         return res.status(400).json({
@@ -94,7 +95,7 @@ export const clienteController = {
       }
 
       // Verifica se já existe um usuário com o mesmo email
-      const usuarioExistente = await Usuario.findOne({ email: credenciais.email });
+      const usuarioExistente = await Usuario.findOne({ where: { email: credenciais.email } });
       if (usuarioExistente) {
         return res.status(400).json({
           success: false,
@@ -113,10 +114,12 @@ export const clienteController = {
       });
 
       // Novo: verifica se veio representanteId para vincular
-      let representantes: string[] = [];
+      let representantes: string = '';
       if (req.body.representanteId) {
-        representantes = [req.body.representanteId];
+        representantes = req.body.representanteId;
       }
+
+      const reps: string = Array.isArray(representantes) ? representantes.join(',') : representantes;
 
       // Cria o cliente associado ao usuário
       const novoCliente = await Cliente.create({
@@ -129,11 +132,8 @@ export const clienteController = {
         celular,
         endereco,
         status: status || 'ativo',
-        representante,
-        limiteCredito: Number(limiteCredito),
-        condicaoPagamento,
-        representantes,
-        usuario: novoUsuario._id
+        representantes: reps,
+        usuario: novoUsuario.id
       });
 
       // Remove o usuário dos dados retornados
@@ -179,30 +179,26 @@ export const clienteController = {
         condicaoPagamento
       } = req.body;
 
-      const reps: string[] = Array.isArray(representantes) ? representantes : [];
-      const clienteAtualizado = await Cliente.findByIdAndUpdate(
-        id,
-        {
-          razaoSocial,
-          nomeFantasia,
-          inscricaoEstadual,
-          email,
-          telefone,
-          celular,
-          endereco,
-          representantes: reps,
-          limiteCredito,
-          condicaoPagamento
-        },
-        { new: true }
-      ).select('-usuario');
-
-      if (!clienteAtualizado) {
+      const reps: string = Array.isArray(representantes) ? representantes.join(',') : representantes;
+      const cliente = await Cliente.findByPk(id);
+      
+      if (!cliente) {
         return res.status(404).json({
           success: false,
           message: 'Cliente não encontrado'
         });
       }
+
+      const clienteAtualizado = await cliente.update({
+        razaoSocial,
+        nomeFantasia,
+        inscricaoEstadual,
+        email,
+        telefone,
+        celular,
+        endereco,
+        representantes: reps
+      });
 
       return res.json({
         success: true,
@@ -221,8 +217,8 @@ export const clienteController = {
   async excluir(req: Request, res: Response) {
     try {
       const { id } = req.params;
-
-      const cliente = await Cliente.findById(id);
+      const cliente = await Cliente.findByPk(id);
+      
       if (!cliente) {
         return res.status(404).json({
           success: false,
@@ -230,11 +226,7 @@ export const clienteController = {
         });
       }
 
-      // Remove o usuário associado
-      await Usuario.findByIdAndDelete(cliente.usuario);
-      
-      // Remove o cliente
-      await Cliente.findByIdAndDelete(id);
+      await cliente.destroy();
 
       return res.json({
         success: true,
@@ -252,25 +244,22 @@ export const clienteController = {
   async alterarStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { ativo } = req.body;
+      const { status } = req.body;
 
-      const clienteAtualizado = await Cliente.findByIdAndUpdate(
-        id,
-        { status: ativo ? 'ativo' : 'inativo' },
-        { new: true }
-      ).select('-usuario');
-
-      if (!clienteAtualizado) {
+      const cliente = await Cliente.findByPk(id);
+      
+      if (!cliente) {
         return res.status(404).json({
           success: false,
           message: 'Cliente não encontrado'
         });
       }
 
+      await cliente.update({ status });
+
       return res.json({
         success: true,
-        data: clienteAtualizado,
-        message: 'Status do cliente atualizado com sucesso'
+        message: 'Status do cliente alterado com sucesso'
       });
     } catch (error) {
       console.error('Erro ao alterar status do cliente:', error);
@@ -285,27 +274,43 @@ export const clienteController = {
     try {
       const { id } = req.params;
       const { novaSenha } = req.body;
-      if (!novaSenha || novaSenha.length < 6) {
-        return res.status(400).json({ success: false, message: 'A nova senha deve ter pelo menos 6 caracteres.' });
-      }
-      // Busca o cliente
-      const cliente = await Cliente.findById(id);
+
+      const cliente = await Cliente.findByPk(id);
+      
       if (!cliente) {
-        return res.status(404).json({ success: false, message: 'Cliente não encontrado.' });
+        return res.status(404).json({
+          success: false,
+          message: 'Cliente não encontrado'
+        });
       }
-      // Busca o usuário associado
-      const usuario = await Usuario.findOne({ email: cliente.email, role: 'CLIENTE' });
+
+      // Busca o usuário associado ao cliente
+      const usuario = await Usuario.findByPk(cliente.usuario);
+      
       if (!usuario) {
-        return res.status(404).json({ success: false, message: 'Usuário do cliente não encontrado.' });
+        return res.status(404).json({
+          success: false,
+          message: 'Usuário do cliente não encontrado'
+        });
       }
-      // Atualiza a senha
+
+      // Gera nova senha hash
       const salt = await bcrypt.genSalt(10);
-      usuario.senha = await bcrypt.hash(novaSenha, salt);
-      await usuario.save();
-      return res.json({ success: true, message: 'Senha do cliente resetada com sucesso.' });
+      const hashedPassword = await bcrypt.hash(novaSenha, salt);
+
+      // Atualiza a senha do usuário
+      await usuario.update({ senha: hashedPassword });
+
+      return res.json({
+        success: true,
+        message: 'Senha do cliente resetada com sucesso'
+      });
     } catch (error) {
       console.error('Erro ao resetar senha do cliente:', error);
-      return res.status(500).json({ success: false, message: 'Erro ao resetar senha do cliente.' });
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao resetar senha do cliente'
+      });
     }
   }
 }; 

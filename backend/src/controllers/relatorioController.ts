@@ -1,59 +1,37 @@
 import { Request, Response } from 'express';
-import { Pedido } from '../models/Pedido';
-import Representante from '../models/Representante';
+import { Pedido, Representante, Cliente, Produto } from '../models';
+import { Op, fn, col, literal } from 'sequelize';
 
 // Vendas por representante/mês
 export const vendasPorRepresentanteMes = async (req: Request, res: Response) => {
   try {
     const ano = parseInt(req.query.ano as string) || new Date().getFullYear();
-    // Agregação MongoDB
-    const pipeline = [
-      {
-        $match: {
-          data: {
-            $gte: new Date(`${ano}-01-01T00:00:00.000Z`),
-            $lte: new Date(`${ano}-12-31T23:59:59.999Z`)
-          }
+    const pedidos = await Pedido.findAll({
+      where: {
+        data: {
+          [Op.gte]: new Date(`${ano}-01-01T00:00:00.000Z`),
+          [Op.lte]: new Date(`${ano}-12-31T23:59:59.999Z`)
         }
       },
-      {
-        $group: {
-          _id: {
-            representante: '$representante',
-            mes: { $month: '$data' },
-            ano: { $year: '$data' }
-          },
-          totalVendas: { $sum: '$valorTotal' },
-          totalPedidos: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'representantes',
-          localField: '_id.representante',
-          foreignField: '_id',
-          as: 'representanteInfo'
-        }
-      },
-      {
-        $unwind: '$representanteInfo'
-      },
-      {
-        $project: {
-          _id: 0,
-          representante: '$representanteInfo.nome',
-          representanteId: '$_id.representante',
-          mes: '$_id.mes',
-          ano: '$_id.ano',
-          totalVendas: 1,
-          totalPedidos: 1
-        }
-      },
-      {
-        $sort: { representante: 1, ano: 1, mes: 1 }
-      }
-    ];
-    const resultado = await Pedido.aggregate(pipeline as any[]);
+      attributes: [
+        'representanteId',
+        [fn('MONTH', col('data')), 'mes'],
+        [fn('YEAR', col('data')), 'ano'],
+        [fn('SUM', col('valorTotal')), 'totalVendas'],
+        [fn('COUNT', col('id')), 'totalPedidos']
+      ],
+      group: ['representanteId', 'mes', 'ano'],
+      include: [{ model: Representante, as: 'representante', attributes: ['nome'] }],
+      order: [[{ model: Representante, as: 'representante' }, 'nome', 'ASC'], ['ano', 'ASC'], ['mes', 'ASC']]
+    });
+    const resultado = (pedidos as any[]).map((p: any) => ({
+      representante: p.representante?.nome || 'Desconhecido',
+      representanteId: p.representanteId,
+      mes: p.get('mes'),
+      ano: p.get('ano'),
+      totalVendas: p.get('totalVendas'),
+      totalPedidos: p.get('totalPedidos')
+    }));
     return res.json({ success: true, data: resultado });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Erro ao gerar relatório', error });
@@ -64,74 +42,77 @@ export const vendasPorRepresentanteMes = async (req: Request, res: Response) => 
 export const vendasPorPeriodoProdutoRepresentante = async (req: Request, res: Response) => {
   try {
     const { dataInicio, dataFim, produto, representante } = req.query;
-    const match: any = {};
+    const where: any = {};
     if (dataInicio || dataFim) {
-      match.data = {};
-      if (dataInicio) match.data.$gte = new Date(dataInicio as string);
-      if (dataFim) match.data.$lte = new Date(dataFim as string);
+      where.data = {};
+      if (dataInicio) where.data[Op.gte] = new Date(dataInicio as string);
+      if (dataFim) where.data[Op.lte] = new Date(dataFim as string);
     }
-    if (representante) match.representante = representante;
-    if (produto) match['itens.produto'] = produto;
-
-    // Agrupamento dinâmico
-    let groupId: any = {};
+    if (representante) where.representanteId = representante;
+    // Não é possível agrupar por item.produto diretamente, então faz agrupamento manual
+    const pedidos = await Pedido.findAll({ where });
+    let resultado: any[] = [];
     if (produto && representante) {
-      groupId = { produto: '$itens.produto', representante: '$representante' };
+      // Agrupa por produto e representante
+      const agrupados: any = {};
+      pedidos.forEach(p => {
+        (p.itens || []).forEach((item: any) => {
+          if (item.produtoId === produto) {
+            const key = `${item.produtoId}_${p.representanteId}`;
+            if (!agrupados[key]) agrupados[key] = { produtoId: item.produtoId, representanteId: p.representanteId, quantidadeVendida: 0, valorTotalVendido: 0 };
+            agrupados[key].quantidadeVendida += item.quantidade;
+            agrupados[key].valorTotalVendido += item.valorTotal;
+          }
+        });
+      });
+      resultado = Object.values(agrupados);
     } else if (produto) {
-      groupId = { produto: '$itens.produto' };
+      // Agrupa por produto
+      const agrupados: any = {};
+      pedidos.forEach(p => {
+        (p.itens || []).forEach((item: any) => {
+          if (item.produtoId === produto) {
+            if (!agrupados[item.produtoId]) agrupados[item.produtoId] = { produtoId: item.produtoId, quantidadeVendida: 0, valorTotalVendido: 0 };
+            agrupados[item.produtoId].quantidadeVendida += item.quantidade;
+            agrupados[item.produtoId].valorTotalVendido += item.valorTotal;
+          }
+        });
+      });
+      resultado = Object.values(agrupados);
     } else if (representante) {
-      groupId = { representante: '$representante' };
+      // Agrupa por representante
+      const agrupados: any = {};
+      pedidos.forEach(p => {
+        (p.itens || []).forEach((item: any) => {
+          if (!agrupados[p.representanteId]) agrupados[p.representanteId] = { representanteId: p.representanteId, quantidadeVendida: 0, valorTotalVendido: 0 };
+          agrupados[p.representanteId].quantidadeVendida += item.quantidade;
+          agrupados[p.representanteId].valorTotalVendido += item.valorTotal;
+        });
+      });
+      resultado = Object.values(agrupados);
     } else {
-      groupId = {};
-    }
-
-    const pipeline: any[] = [
-      { $unwind: '$itens' },
-      { $match: match },
-      {
-        $group: {
-          _id: groupId,
-          quantidadeVendida: { $sum: '$itens.quantidade' },
-          valorTotalVendido: { $sum: '$itens.valorTotal' },
-        }
-      },
-    ];
-    // Popula produto
-    if (groupId.produto) {
-      pipeline.push({
-        $lookup: {
-          from: 'produtos',
-          localField: '_id.produto',
-          foreignField: '_id',
-          as: 'produtoInfo'
-        }
+      // Agrupa geral
+      let quantidadeVendida = 0;
+      let valorTotalVendido = 0;
+      pedidos.forEach(p => {
+        (p.itens || []).forEach((item: any) => {
+          quantidadeVendida += item.quantidade;
+          valorTotalVendido += item.valorTotal;
+        });
       });
-      pipeline.push({ $unwind: '$produtoInfo' });
+      resultado = [{ quantidadeVendida, valorTotalVendido }];
     }
-    // Popula representante
-    if (groupId.representante) {
-      pipeline.push({
-        $lookup: {
-          from: 'representantes',
-          localField: '_id.representante',
-          foreignField: '_id',
-          as: 'representanteInfo'
-        }
-      });
-      pipeline.push({ $unwind: '$representanteInfo' });
-    }
-    pipeline.push({
-      $project: {
-        _id: 0,
-        produto: groupId.produto ? '$produtoInfo.nome' : undefined,
-        produtoId: groupId.produto ? '$_id.produto' : undefined,
-        representante: groupId.representante ? '$representanteInfo.nome' : undefined,
-        representanteId: groupId.representante ? '$_id.representante' : undefined,
-        quantidadeVendida: 1,
-        valorTotalVendido: 1,
+    // Popula nomes
+    for (const r of resultado as any[]) {
+      if (r.produtoId) {
+        const prod = await Produto.findByPk(r.produtoId);
+        r.produto = prod?.nome || 'Desconhecido';
       }
-    });
-    const resultado = await Pedido.aggregate(pipeline as any[]);
+      if (r.representanteId) {
+        const rep = await Representante.findByPk(r.representanteId);
+        r.representante = rep?.nome || 'Desconhecido';
+      }
+    }
     return res.json({ success: true, data: resultado });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Erro ao gerar relatório', error });
@@ -142,42 +123,26 @@ export const vendasPorPeriodoProdutoRepresentante = async (req: Request, res: Re
 export const rankingClientes = async (req: Request, res: Response) => {
   try {
     const { dataInicio, dataFim } = req.query;
-    const match: any = {};
+    const where: any = {};
     if (dataInicio || dataFim) {
-      match.data = {};
-      if (dataInicio) match.data.$gte = new Date(dataInicio as string);
-      if (dataFim) match.data.$lte = new Date(dataFim as string);
+      where.data = {};
+      if (dataInicio) where.data[Op.gte] = new Date(dataInicio as string);
+      if (dataFim) where.data[Op.lte] = new Date(dataFim as string);
     }
-    const pipeline: any[] = [
-      { $match: match },
-      {
-        $group: {
-          _id: '$cliente',
-          quantidadePedidos: { $sum: 1 },
-          valorTotalComprado: { $sum: '$valorTotal' },
-        }
-      },
-      {
-        $lookup: {
-          from: 'clientes',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'clienteInfo'
-        }
-      },
-      { $unwind: '$clienteInfo' },
-      {
-        $project: {
-          _id: 0,
-          cliente: '$clienteInfo.razaoSocial',
-          clienteId: '$_id',
-          quantidadePedidos: 1,
-          valorTotalComprado: 1,
-        }
-      },
-      { $sort: { valorTotalComprado: -1 } }
-    ];
-    const resultado = await Pedido.aggregate(pipeline as any[]);
+    const pedidos = await Pedido.findAll({ where });
+    const agrupados: any = {};
+    pedidos.forEach(p => {
+      if (!agrupados[p.clienteId]) agrupados[p.clienteId] = { clienteId: p.clienteId, quantidadePedidos: 0, valorTotalComprado: 0 };
+      agrupados[p.clienteId].quantidadePedidos += 1;
+      agrupados[p.clienteId].valorTotalComprado += p.valorTotal;
+    });
+    let resultado = Object.values(agrupados);
+    // Popula nomes
+    for (const r of resultado as any[]) {
+      const cliente = await Cliente.findByPk(r.clienteId);
+      r.cliente = cliente?.razaoSocial || 'Desconhecido';
+    }
+    resultado = resultado.sort((a: any, b: any) => b.valorTotalComprado - a.valorTotalComprado);
     return res.json({ success: true, data: resultado });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Erro ao gerar relatório', error });

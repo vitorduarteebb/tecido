@@ -9,6 +9,7 @@ router.use(authMiddleware_1.authMiddleware);
 router.post('/', pedidoController_1.pedidoController.criar);
 router.get('/', pedidoController_1.pedidoController.listar);
 router.get('/dashboard', pedidoController_1.pedidoController.dashboard);
+router.get('/numero/:numeroPedido', pedidoController_1.pedidoController.obterPorNumero);
 router.get('/:id', pedidoController_1.pedidoController.obter);
 router.get('/representante/:representanteId', pedidoController_1.pedidoController.listarPorRepresentante);
 router.get('/cliente/:clienteId', pedidoController_1.pedidoController.listarPorCliente);

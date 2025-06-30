@@ -1,53 +1,74 @@
-import mongoose, { Document } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 import { UserRole } from '../types';
 
-export interface IAdmin extends Document {
+export interface IAdmin {
+  id?: string;
   nome: string;
   email: string;
   senha: string;
-  role: UserRole;
-  dataCriacao: Date;
-  dataAtualizacao: Date;
+  role: string;
+  dataCriacao?: Date;
+  dataAtualizacao?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const adminSchema = new mongoose.Schema({
+export interface AdminCreationAttributes extends Optional<IAdmin, 'id' | 'role' | 'dataCriacao' | 'dataAtualizacao' | 'createdAt' | 'updatedAt'> {}
+
+export class Admin extends Model<IAdmin, AdminCreationAttributes> implements IAdmin {
+  public id!: string;
+  public nome!: string;
+  public email!: string;
+  public senha!: string;
+  public role!: string;
+  public dataCriacao!: Date;
+  public dataAtualizacao!: Date;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Admin.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   nome: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
   },
   senha: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   role: {
-    type: String,
-    enum: Object.values(UserRole),
-    default: UserRole.ADMINISTRADOR,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: UserRole.ADMINISTRADOR,
   },
   dataCriacao: {
-    type: Date,
-    default: Date.now,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
   },
   dataAtualizacao: {
-    type: Date,
-    default: Date.now,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
   },
+}, {
+  sequelize,
+  tableName: 'admins',
+  timestamps: false,
 });
 
-// Middleware para atualizar a data de atualização
-adminSchema.pre('save', function(next) {
-  if (this.isModified()) {
-    this.dataAtualizacao = new Date();
-  }
-  next();
+// Hook para atualizar dataAtualizacao
+Admin.beforeUpdate((admin: Admin) => {
+  admin.dataAtualizacao = new Date();
 });
-
-const Admin = mongoose.model<IAdmin>('Admin', adminSchema);
 
 export default Admin; 

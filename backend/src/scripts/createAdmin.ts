@@ -8,7 +8,7 @@ const createAdmin = async () => {
     await connectDB();
 
     // Remove existing admin if exists
-    await Admin.deleteOne({ email: 'admin@tecidos.com' });
+    await Admin.destroy({ where: { email: 'admin@tecidos.com' } });
 
     // Create admin user
     const salt = await bcrypt.genSalt(10);

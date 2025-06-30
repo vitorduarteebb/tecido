@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.produtoController = void 0;
-const Produto_1 = require("../models/Produto");
+const models_1 = require("../models");
 exports.produtoController = {
     async listar(req, res) {
         try {
             console.log('[produtoController] Iniciando listagem de produtos');
-            const produtos = await Produto_1.Produto.find().sort({ dataCadastro: -1 });
+            const produtos = await models_1.Produto.findAll({
+                order: [['dataCadastro', 'DESC']]
+            });
             console.log('[produtoController] Produtos encontrados:', produtos.length);
             return res.json({ success: true, data: produtos, count: produtos.length });
         }
@@ -18,7 +20,7 @@ exports.produtoController = {
     async obter(req, res) {
         try {
             const { id } = req.params;
-            const produto = await Produto_1.Produto.findById(id);
+            const produto = await models_1.Produto.findByPk(id);
             if (!produto) {
                 return res.status(404).json({ success: false, message: 'Produto não encontrado' });
             }
@@ -35,7 +37,7 @@ exports.produtoController = {
             if (precoAVista === undefined || precoAPrazo === undefined || pesoPorMetro === undefined) {
                 return res.status(400).json({ success: false, message: 'Campos obrigatórios: precoAVista, precoAPrazo, pesoPorMetro' });
             }
-            const novoProduto = await Produto_1.Produto.create(req.body);
+            const novoProduto = await models_1.Produto.create(req.body);
             return res.status(201).json({ success: true, data: novoProduto, message: 'Produto cadastrado com sucesso' });
         }
         catch (error) {
@@ -50,10 +52,11 @@ exports.produtoController = {
             if (precoAVista === undefined || precoAPrazo === undefined || pesoPorMetro === undefined) {
                 return res.status(400).json({ success: false, message: 'Campos obrigatórios: precoAVista, precoAPrazo, pesoPorMetro' });
             }
-            const produtoAtualizado = await Produto_1.Produto.findByIdAndUpdate(id, req.body, { new: true });
-            if (!produtoAtualizado) {
+            const produto = await models_1.Produto.findByPk(id);
+            if (!produto) {
                 return res.status(404).json({ success: false, message: 'Produto não encontrado' });
             }
+            const produtoAtualizado = await produto.update(req.body);
             return res.json({ success: true, data: produtoAtualizado, message: 'Produto atualizado com sucesso' });
         }
         catch (error) {
@@ -64,10 +67,11 @@ exports.produtoController = {
     async excluir(req, res) {
         try {
             const { id } = req.params;
-            const produto = await Produto_1.Produto.findByIdAndDelete(id);
+            const produto = await models_1.Produto.findByPk(id);
             if (!produto) {
                 return res.status(404).json({ success: false, message: 'Produto não encontrado' });
             }
+            await produto.destroy();
             return res.json({ success: true, message: 'Produto excluído com sucesso' });
         }
         catch (error) {

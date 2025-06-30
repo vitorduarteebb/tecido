@@ -33,8 +33,9 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
     try {
         await (0, database_1.connectDB)();
-        app.listen(database_1.config.port, () => {
-            console.log(`Server running on port ${database_1.config.port}`);
+        const port = process.env.PORT || 5000;
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
         });
     }
     catch (error) {

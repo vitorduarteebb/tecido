@@ -1,70 +1,79 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Produto = void 0;
-const mongoose_1 = __importStar(require("mongoose"));
-const especificacoesSchema = new mongoose_1.Schema({
-    composicao: { type: String, required: true },
-    largura: { type: String, required: true },
-    gramatura: { type: String, required: true },
-    rendimento: { type: String, required: true },
-    cor: { type: String, required: true },
-    padronagem: { type: String, required: true },
-}, { _id: false });
-const precoSchema = new mongoose_1.Schema({
-    valor: { type: Number, required: true },
-    unidade: { type: String, enum: ['metro', 'kg'], required: true },
-}, { _id: false });
-const estoqueSchema = new mongoose_1.Schema({
-    quantidade: { type: Number, required: true },
-    unidade: { type: String, enum: ['metro', 'kg'], required: true },
-}, { _id: false });
-const produtoSchema = new mongoose_1.Schema({
-    codigo: { type: String, required: true, unique: true },
-    nome: { type: String, required: true },
-    descricao: { type: String, required: true },
-    imagem: { type: String },
-    especificacoes: { type: especificacoesSchema, required: true },
-    preco: { type: precoSchema, required: true },
-    precoAVista: { type: Number, required: true },
-    precoAPrazo: { type: Number, required: true },
-    pesoPorMetro: { type: Number, required: true },
-    estoque: { type: estoqueSchema, required: true },
-    categoria: { type: String, required: true },
-    tags: { type: [String], default: [] },
-    dataCadastro: { type: Date, default: Date.now },
-    status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
+const sequelize_1 = require("sequelize");
+const database_1 = require("../config/database");
+class Produto extends sequelize_1.Model {
+}
+exports.Produto = Produto;
+Produto.init({
+    id: {
+        type: sequelize_1.DataTypes.UUID,
+        defaultValue: sequelize_1.DataTypes.UUIDV4,
+        primaryKey: true,
+    },
+    codigo: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+    },
+    nome: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    descricao: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    imagem: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    especificacoes: {
+        type: sequelize_1.DataTypes.JSON,
+        allowNull: false,
+    },
+    preco: {
+        type: sequelize_1.DataTypes.JSON,
+        allowNull: false,
+    },
+    precoAVista: {
+        type: sequelize_1.DataTypes.FLOAT,
+        allowNull: false,
+    },
+    precoAPrazo: {
+        type: sequelize_1.DataTypes.FLOAT,
+        allowNull: false,
+    },
+    pesoPorMetro: {
+        type: sequelize_1.DataTypes.FLOAT,
+        allowNull: false,
+    },
+    estoque: {
+        type: sequelize_1.DataTypes.JSON,
+        allowNull: false,
+    },
+    categoria: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    tags: {
+        type: sequelize_1.DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+    },
+    dataCadastro: {
+        type: sequelize_1.DataTypes.DATE,
+        defaultValue: sequelize_1.DataTypes.NOW,
+    },
+    status: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'ativo',
+    },
+}, {
+    sequelize: database_1.sequelize,
+    tableName: 'produtos',
+    timestamps: false,
 });
-exports.Produto = mongoose_1.default.model('Produto', produtoSchema);
+exports.default = Produto;

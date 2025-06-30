@@ -11,7 +11,7 @@ const createAdmin = async () => {
     try {
         await (0, database_1.connectDB)();
         // Remove existing admin if exists
-        await Admin_1.default.deleteOne({ email: 'admin@tecidos.com' });
+        await Admin_1.default.destroy({ where: { email: 'admin@tecidos.com' } });
         // Create admin user
         const salt = await bcryptjs_1.default.genSalt(10);
         const hashedPassword = await bcryptjs_1.default.hash('admin123', salt);

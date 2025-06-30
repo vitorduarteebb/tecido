@@ -4,8 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.clienteController = void 0;
-const Cliente_1 = require("../models/Cliente");
-const Usuario_1 = require("../models/Usuario");
+const models_1 = require("../models");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 exports.clienteController = {
     async listar(req, res) {
@@ -13,16 +12,20 @@ exports.clienteController = {
             const user = req.user;
             let clientes;
             if (user && user.role === 'ADMINISTRADOR') {
-                clientes = await Cliente_1.Cliente.find().lean();
+                clientes = await models_1.Cliente.findAll();
             }
             else if (user && user.role === 'REPRESENTANTE') {
-                clientes = await Cliente_1.Cliente.find({ representantes: user.id }).lean();
+                clientes = await models_1.Cliente.findAll({
+                    where: {
+                        representantes: user.id
+                    }
+                });
             }
             else {
                 return res.status(403).json({ success: false, message: 'Acesso negado' });
             }
             // Garante que todos tenham o campo representantes (array)
-            const clientesComRepresentantes = clientes.map(c => (Object.assign(Object.assign({}, c), { representantes: c.representantes || [] })));
+            const clientesComRepresentantes = clientes.map(c => (Object.assign(Object.assign({}, c.toJSON()), { representantes: c.representantes || [] })));
             return res.json({ success: true, data: clientesComRepresentantes, count: clientesComRepresentantes.length });
         }
         catch (error) {
@@ -36,14 +39,16 @@ exports.clienteController = {
     async obter(req, res) {
         try {
             const { id } = req.params;
-            const cliente = await Cliente_1.Cliente.findById(id)
-                .select('-usuario');
+            console.log('[clienteController] Buscando cliente com ID:', id);
+            const cliente = await models_1.Cliente.findByPk(id);
             if (!cliente) {
+                console.log('[clienteController] Cliente não encontrado');
                 return res.status(404).json({
                     success: false,
                     message: 'Cliente não encontrado'
                 });
             }
+            console.log('[clienteController] Cliente encontrado:', JSON.stringify(cliente.toJSON(), null, 2));
             return res.json({
                 success: true,
                 data: cliente
@@ -61,7 +66,7 @@ exports.clienteController = {
         try {
             const { razaoSocial, nomeFantasia, cnpj, inscricaoEstadual, email, telefone, celular, endereco, status, representante, limiteCredito, condicaoPagamento, credenciais } = req.body;
             // Verifica se já existe um cliente com o mesmo CNPJ
-            const clienteExistente = await Cliente_1.Cliente.findOne({ cnpj });
+            const clienteExistente = await models_1.Cliente.findOne({ where: { cnpj } });
             if (clienteExistente) {
                 return res.status(400).json({
                     success: false,
@@ -69,7 +74,7 @@ exports.clienteController = {
                 });
             }
             // Verifica se já existe um usuário com o mesmo email
-            const usuarioExistente = await Usuario_1.Usuario.findOne({ email: credenciais.email });
+            const usuarioExistente = await models_1.Usuario.findOne({ where: { email: credenciais.email } });
             if (usuarioExistente) {
                 return res.status(400).json({
                     success: false,
@@ -79,18 +84,19 @@ exports.clienteController = {
             // Cria o usuário com as credenciais
             const salt = await bcrypt_1.default.genSalt(10);
             const hashedPassword = await bcrypt_1.default.hash(credenciais.senha, salt);
-            const novoUsuario = await Usuario_1.Usuario.create({
+            const novoUsuario = await models_1.Usuario.create({
                 email: credenciais.email,
                 senha: hashedPassword,
                 role: 'CLIENTE'
             });
             // Novo: verifica se veio representanteId para vincular
-            let representantes = [];
+            let representantes = '';
             if (req.body.representanteId) {
-                representantes = [req.body.representanteId];
+                representantes = req.body.representanteId;
             }
+            const reps = Array.isArray(representantes) ? representantes.join(',') : representantes;
             // Cria o cliente associado ao usuário
-            const novoCliente = await Cliente_1.Cliente.create({
+            const novoCliente = await models_1.Cliente.create({
                 razaoSocial,
                 nomeFantasia,
                 cnpj,
@@ -100,11 +106,8 @@ exports.clienteController = {
                 celular,
                 endereco,
                 status: status || 'ativo',
-                representante,
-                limiteCredito: Number(limiteCredito),
-                condicaoPagamento,
-                representantes,
-                usuario: novoUsuario._id
+                representantes: reps,
+                usuario: novoUsuario.id
             });
             // Remove o usuário dos dados retornados
             const clienteResponse = novoCliente.toJSON();
@@ -134,8 +137,15 @@ exports.clienteController = {
         try {
             const { id } = req.params;
             const { razaoSocial, nomeFantasia, inscricaoEstadual, email, telefone, celular, endereco, representantes = [], limiteCredito, condicaoPagamento } = req.body;
-            const reps = Array.isArray(representantes) ? representantes : [];
-            const clienteAtualizado = await Cliente_1.Cliente.findByIdAndUpdate(id, {
+            const reps = Array.isArray(representantes) ? representantes.join(',') : representantes;
+            const cliente = await models_1.Cliente.findByPk(id);
+            if (!cliente) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Cliente não encontrado'
+                });
+            }
+            const clienteAtualizado = await cliente.update({
                 razaoSocial,
                 nomeFantasia,
                 inscricaoEstadual,
@@ -143,16 +153,8 @@ exports.clienteController = {
                 telefone,
                 celular,
                 endereco,
-                representantes: reps,
-                limiteCredito,
-                condicaoPagamento
-            }, { new: true }).select('-usuario');
-            if (!clienteAtualizado) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Cliente não encontrado'
-                });
-            }
+                representantes: reps
+            });
             return res.json({
                 success: true,
                 data: clienteAtualizado,
@@ -170,17 +172,14 @@ exports.clienteController = {
     async excluir(req, res) {
         try {
             const { id } = req.params;
-            const cliente = await Cliente_1.Cliente.findById(id);
+            const cliente = await models_1.Cliente.findByPk(id);
             if (!cliente) {
                 return res.status(404).json({
                     success: false,
                     message: 'Cliente não encontrado'
                 });
             }
-            // Remove o usuário associado
-            await Usuario_1.Usuario.findByIdAndDelete(cliente.usuario);
-            // Remove o cliente
-            await Cliente_1.Cliente.findByIdAndDelete(id);
+            await cliente.destroy();
             return res.json({
                 success: true,
                 message: 'Cliente excluído com sucesso'
@@ -197,18 +196,18 @@ exports.clienteController = {
     async alterarStatus(req, res) {
         try {
             const { id } = req.params;
-            const { ativo } = req.body;
-            const clienteAtualizado = await Cliente_1.Cliente.findByIdAndUpdate(id, { status: ativo ? 'ativo' : 'inativo' }, { new: true }).select('-usuario');
-            if (!clienteAtualizado) {
+            const { status } = req.body;
+            const cliente = await models_1.Cliente.findByPk(id);
+            if (!cliente) {
                 return res.status(404).json({
                     success: false,
                     message: 'Cliente não encontrado'
                 });
             }
+            await cliente.update({ status });
             return res.json({
                 success: true,
-                data: clienteAtualizado,
-                message: 'Status do cliente atualizado com sucesso'
+                message: 'Status do cliente alterado com sucesso'
             });
         }
         catch (error) {
@@ -216,6 +215,43 @@ exports.clienteController = {
             return res.status(500).json({
                 success: false,
                 message: 'Erro ao alterar status do cliente'
+            });
+        }
+    },
+    async resetarSenha(req, res) {
+        try {
+            const { id } = req.params;
+            const { novaSenha } = req.body;
+            const cliente = await models_1.Cliente.findByPk(id);
+            if (!cliente) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Cliente não encontrado'
+                });
+            }
+            // Busca o usuário associado ao cliente
+            const usuario = await models_1.Usuario.findByPk(cliente.usuario);
+            if (!usuario) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Usuário do cliente não encontrado'
+                });
+            }
+            // Gera nova senha hash
+            const salt = await bcrypt_1.default.genSalt(10);
+            const hashedPassword = await bcrypt_1.default.hash(novaSenha, salt);
+            // Atualiza a senha do usuário
+            await usuario.update({ senha: hashedPassword });
+            return res.json({
+                success: true,
+                message: 'Senha do cliente resetada com sucesso'
+            });
+        }
+        catch (error) {
+            console.error('Erro ao resetar senha do cliente:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Erro ao resetar senha do cliente'
             });
         }
     }

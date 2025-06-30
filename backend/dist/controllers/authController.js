@@ -6,11 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authController = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const database_1 = require("../config/database");
-const Admin_1 = __importDefault(require("../models/Admin"));
-const Representante_1 = __importDefault(require("../models/Representante"));
-const Cliente_1 = require("../models/Cliente");
-const Usuario_1 = require("../models/Usuario");
+const config_1 = require("../config");
+const models_1 = require("../models");
 const VALID_ROLES = ['ADMINISTRADOR', 'REPRESENTANTE', 'CLIENTE'];
 exports.authController = {
     login: async (req, res) => {
@@ -36,14 +33,12 @@ exports.authController = {
                 });
             }
             // Seleciona o modelo correto baseado na role
-            let UserModel;
             let user = null;
             let userResponse = null;
             let token = '';
             switch (normalizedRole) {
                 case 'ADMINISTRADOR':
-                    UserModel = Admin_1.default;
-                    user = await UserModel.findOne({ email }).exec();
+                    user = await models_1.Admin.findOne({ where: { email } });
                     if (!user) {
                         console.log('User not found:', email);
                         return res.status(401).json({
@@ -57,13 +52,12 @@ exports.authController = {
                             message: 'Credenciais inválidas'
                         });
                     }
-                    token = jsonwebtoken_1.default.sign({ id: user._id, role: normalizedRole }, database_1.config.jwtSecret, { expiresIn: '24h' });
-                    userResponse = user.toObject();
+                    token = jsonwebtoken_1.default.sign({ id: user.id, role: normalizedRole }, config_1.config.jwtSecret, { expiresIn: '24h' });
+                    userResponse = user.toJSON();
                     delete userResponse.senha;
                     break;
                 case 'REPRESENTANTE':
-                    UserModel = Representante_1.default;
-                    user = await UserModel.findOne({ email }).exec();
+                    user = await models_1.Representante.findOne({ where: { email } });
                     if (!user) {
                         console.log('User not found:', email);
                         return res.status(401).json({
@@ -77,16 +71,16 @@ exports.authController = {
                             message: 'Credenciais inválidas'
                         });
                     }
-                    token = jsonwebtoken_1.default.sign({ id: user._id, role: normalizedRole }, database_1.config.jwtSecret, { expiresIn: '24h' });
-                    userResponse = user.toObject();
+                    token = jsonwebtoken_1.default.sign({ id: user.id, role: normalizedRole }, config_1.config.jwtSecret, { expiresIn: '24h' });
+                    userResponse = user.toJSON();
                     delete userResponse.senha;
                     // Adiciona o id do representante como id e o id do usuário como userId (caso queira usar no futuro)
-                    userResponse.id = user._id;
-                    userResponse.userId = user._id; // Não há usuário separado para representante, então ambos são iguais
+                    userResponse.id = user.id;
+                    userResponse.userId = user.id; // Não há usuário separado para representante, então ambos são iguais
                     break;
                 case 'CLIENTE':
                     // Busca o usuário pelo email e role CLIENTE
-                    const usuario = await Usuario_1.Usuario.findOne({ email, role: 'CLIENTE' });
+                    const usuario = await models_1.Usuario.findOne({ where: { email, role: 'CLIENTE' } });
                     if (!usuario) {
                         console.log('Cliente user not found:', email);
                         return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -97,16 +91,16 @@ exports.authController = {
                         return res.status(401).json({ message: 'Credenciais inválidas' });
                     }
                     // Busca o cliente associado ao usuário
-                    const cliente = await Cliente_1.Cliente.findOne({ usuario: usuario._id });
+                    const cliente = await models_1.Cliente.findOne({ where: { usuario: usuario.id } });
                     if (!cliente) {
                         console.log('Cliente not found for user:', email);
                         return res.status(401).json({ message: 'Cliente não encontrado' });
                     }
-                    token = jsonwebtoken_1.default.sign({ id: usuario._id, role: normalizedRole }, database_1.config.jwtSecret, { expiresIn: '24h' });
-                    userResponse = usuario.toObject();
+                    token = jsonwebtoken_1.default.sign({ id: usuario.id, role: normalizedRole }, config_1.config.jwtSecret, { expiresIn: '24h' });
+                    userResponse = usuario.toJSON();
                     delete userResponse.senha;
                     // Adiciona o id do cliente ao retorno
-                    userResponse.clienteId = cliente._id;
+                    userResponse.clienteId = cliente.id;
                     break;
                 default:
                     console.log('Invalid role after validation (should not happen):', normalizedRole);

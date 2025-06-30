@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { config, connectDB } from './config/database';
+import { connectDB } from './config/database';
 import router from './routes';
 import path from 'path';
 
@@ -34,8 +34,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(config.port, () => {
-      console.log(`Server running on port ${config.port}`);
+    const port = process.env.PORT || 5000;
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.movimentacaoEstoqueController = void 0;
-const MovimentacaoEstoque_1 = require("../models/MovimentacaoEstoque");
-const Produto_1 = require("../models/Produto");
+const models_1 = require("../models");
 exports.movimentacaoEstoqueController = {
     async registrar(req, res) {
         try {
@@ -11,7 +10,7 @@ exports.movimentacaoEstoqueController = {
             if (!['entrada', 'saida'].includes(tipo)) {
                 return res.status(400).json({ success: false, message: 'Tipo inválido' });
             }
-            const produto = await Produto_1.Produto.findById(id);
+            const produto = await models_1.Produto.findByPk(id);
             if (!produto) {
                 return res.status(404).json({ success: false, message: 'Produto não encontrado' });
             }
@@ -27,8 +26,8 @@ exports.movimentacaoEstoqueController = {
             produto.estoque.quantidade = novaQuantidade;
             await produto.save();
             // Registra a movimentação
-            const mov = await MovimentacaoEstoque_1.MovimentacaoEstoque.create({
-                produto: produto._id,
+            const mov = await models_1.MovimentacaoEstoque.create({
+                produtoId: produto.id,
                 tipo,
                 quantidade,
                 usuario,
@@ -44,7 +43,10 @@ exports.movimentacaoEstoqueController = {
     async listar(req, res) {
         try {
             const { id } = req.params;
-            const movs = await MovimentacaoEstoque_1.MovimentacaoEstoque.find({ produto: id }).sort({ data: -1 });
+            const movs = await models_1.MovimentacaoEstoque.findAll({
+                where: { produtoId: id },
+                order: [['data', 'DESC']]
+            });
             return res.json({ success: true, data: movs });
         }
         catch (error) {

@@ -1,7 +1,8 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 
 export interface ItemPedido {
-  produto: mongoose.Types.ObjectId;
+  produtoId: string;
   quantidade: number;
   valorUnitario: number;
   valorTotal: number;
@@ -19,10 +20,11 @@ export interface AlteracaoPedido {
   descricao?: string;
 }
 
-export interface IPedido extends Document {
+export interface IPedido {
+  id?: string;
   numeroPedido: string;
-  cliente: mongoose.Types.ObjectId;
-  representante: mongoose.Types.ObjectId;
+  clienteId: string;
+  representanteId: string;
   itens: ItemPedido[];
   valorTotal: number;
   condicaoPagamento: 'avista' | 'aprazo';
@@ -32,56 +34,130 @@ export interface IPedido extends Document {
   data: Date;
   observacoes?: string;
   comissaoPaga: boolean;
-  dataComissaoPaga: Date;
+  dataComissaoPaga?: Date;
   dataFaturamento?: Date;
   historicoAlteracoes?: AlteracaoPedido[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const itemPedidoSchema = new Schema<ItemPedido>({
-  produto: { type: Schema.Types.ObjectId, ref: 'Produto', required: true },
-  quantidade: { type: Number, required: true },
-  valorUnitario: { type: Number, required: true },
-  valorTotal: { type: Number, required: true },
-});
+export interface PedidoCreationAttributes extends Optional<IPedido, 'id' | 'numeroPedido' | 'data' | 'comissaoPaga' | 'status' | 'createdAt' | 'updatedAt'> {}
 
-const alteracaoPedidoSchema = new Schema({
-  data: { type: Date, default: Date.now },
-  usuario: {
-    id: String,
-    nome: String,
-    email: String,
+export class Pedido extends Model<IPedido, PedidoCreationAttributes> implements IPedido {
+  public id!: string;
+  public numeroPedido!: string;
+  public clienteId!: string;
+  public representanteId!: string;
+  public itens!: ItemPedido[];
+  public valorTotal!: number;
+  public condicaoPagamento!: 'avista' | 'aprazo';
+  public detalhePrazo?: string;
+  public pesoTotal!: number;
+  public status!: 'Em Separação' | 'Faturado' | 'Enviado' | 'Aguardando Estoque';
+  public data!: Date;
+  public observacoes?: string;
+  public comissaoPaga!: boolean;
+  public dataComissaoPaga?: Date;
+  public dataFaturamento?: Date;
+  public historicoAlteracoes?: AlteracaoPedido[];
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Pedido.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
   },
-  pedidoOriginal: Schema.Types.Mixed,
-  pedidoAlterado: Schema.Types.Mixed,
-  descricao: String,
-}, { _id: false });
-
-const pedidoSchema = new Schema<IPedido>({
-  numeroPedido: { type: String, required: true, unique: true },
-  cliente: { type: Schema.Types.ObjectId, ref: 'Cliente', required: true },
-  representante: { type: Schema.Types.ObjectId, required: true },
-  itens: [itemPedidoSchema],
-  valorTotal: { type: Number, required: true },
-  condicaoPagamento: { type: String, enum: ['avista', 'aprazo'], required: true },
-  detalhePrazo: { type: String },
-  pesoTotal: { type: Number, required: true },
-  status: { type: String, enum: [
-    'Em Separação', 'Faturado', 'Enviado', 'Aguardando Estoque'
-  ], default: 'Em Separação' },
-  data: { type: Date, default: Date.now },
-  observacoes: { type: String },
-  comissaoPaga: { type: Boolean, default: false },
-  dataComissaoPaga: { type: Date },
-  dataFaturamento: { type: Date },
-  historicoAlteracoes: { type: [alteracaoPedidoSchema], default: [] },
+  numeroPedido: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  clienteId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'clientes',
+      key: 'id'
+    }
+  },
+  representanteId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'representantes',
+      key: 'id'
+    }
+  },
+  itens: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: [],
+  },
+  valorTotal: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  condicaoPagamento: {
+    type: DataTypes.ENUM('avista', 'aprazo'),
+    allowNull: false,
+  },
+  detalhePrazo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  pesoTotal: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  status: {
+    type: DataTypes.ENUM('Em Separação', 'Faturado', 'Enviado', 'Aguardando Estoque'),
+    allowNull: false,
+    defaultValue: 'Em Separação',
+  },
+  data: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+  },
+  observacoes: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  comissaoPaga: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  dataComissaoPaga: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  dataFaturamento: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  historicoAlteracoes: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+  },
+}, {
+  sequelize,
+  tableName: 'pedidos',
+  timestamps: true,
 });
 
-// Função para gerar número do pedido
-pedidoSchema.pre('save', async function(next) {
-  if (this.isNew && !this.numeroPedido) {
+// Hook para gerar número do pedido
+Pedido.beforeCreate(async (pedido: Pedido) => {
+  if (!pedido.numeroPedido) {
     try {
       // Busca o último pedido para pegar o próximo número
-      const ultimoPedido = await mongoose.model('Pedido').findOne({}, {}, { sort: { 'numeroPedido': -1 } });
+      const ultimoPedido = await Pedido.findOne({
+        order: [['numeroPedido', 'DESC']]
+      });
       
       let proximoNumero = 1;
       if (ultimoPedido && ultimoPedido.numeroPedido) {
@@ -99,14 +175,13 @@ pedidoSchema.pre('save', async function(next) {
       }
       
       const anoAtual = new Date().getFullYear();
-      this.numeroPedido = `PED-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
+      pedido.numeroPedido = `PED-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
     } catch (error) {
       console.error('Erro ao gerar número do pedido:', error);
       // Fallback: usar timestamp se houver erro
-      this.numeroPedido = `PED-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+      pedido.numeroPedido = `PED-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
     }
   }
-  next();
 });
 
-export const Pedido = mongoose.model<IPedido>('Pedido', pedidoSchema); 
+export default Pedido; 

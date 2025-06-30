@@ -16,19 +16,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.representanteController = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const Representante_1 = __importDefault(require("../models/Representante"));
-const Cliente_1 = require("../models/Cliente");
+const models_1 = require("../models");
+const sequelize_1 = require("sequelize");
 exports.representanteController = {
     // Listar todos os representantes
     listar: async (req, res) => {
         try {
             console.log('Iniciando listagem de representantes');
-            const representantes = await Representante_1.default.find()
-                .select('-senha')
-                .sort({ nome: 1 })
-                .lean()
-                .exec();
-            const repsComId = representantes.map(rep => (Object.assign(Object.assign({}, rep), { id: rep._id.toString() })));
+            const representantes = await models_1.Representante.findAll({
+                attributes: { exclude: ['senha'] },
+                order: [['nome', 'ASC']]
+            });
+            const repsComId = representantes.map(rep => rep.toJSON());
             console.log(`${repsComId.length} representantes encontrados`);
             return res.json({
                 success: true,
@@ -48,11 +47,12 @@ exports.representanteController = {
     // Obter um representante específico
     obter: async (req, res) => {
         try {
-            const representante = await Representante_1.default.findById(req.params.id).select('-senha').lean();
+            const representante = await models_1.Representante.findByPk(req.params.id, {
+                attributes: { exclude: ['senha'] }
+            });
             if (!representante) {
                 return res.status(404).json({ message: 'Representante não encontrado' });
             }
-            representante.id = representante._id.toString();
             res.json(representante);
         }
         catch (error) {
@@ -88,7 +88,7 @@ exports.representanteController = {
                 });
             }
             // Verifica se já existe um representante com este email
-            const representanteExistente = await Representante_1.default.findOne({ email });
+            const representanteExistente = await models_1.Representante.findOne({ where: { email } });
             if (representanteExistente) {
                 console.log('ERRO: Email já cadastrado:', email);
                 return res.status(400).json({
@@ -112,11 +112,10 @@ exports.representanteController = {
                 status: status || 'Ativo'
             };
             console.log('Dados para criação (sem senha):', Object.assign(Object.assign({}, dadosRepresentante), { senha: '***' }));
-            const novoRepresentante = new Representante_1.default(dadosRepresentante);
-            await novoRepresentante.save();
-            console.log('Representante criado com sucesso, ID:', novoRepresentante._id);
+            const novoRepresentante = await models_1.Representante.create(dadosRepresentante);
+            console.log('Representante criado com sucesso, ID:', novoRepresentante.id);
             // Retorna sucesso sem a senha
-            const representanteSemSenha = novoRepresentante.toObject();
+            const representanteSemSenha = novoRepresentante.toJSON();
             const { senha: _ } = representanteSemSenha, representanteSemSenhaFinal = __rest(representanteSemSenha, ["senha"]);
             return res.status(201).json({
                 success: true,
@@ -140,19 +139,32 @@ exports.representanteController = {
             const { id } = req.params;
             // Se estiver atualizando o email, verifica se já existe
             if (email) {
-                const representanteExistente = await Representante_1.default.findOne({
-                    email,
-                    _id: { $ne: id }
+                const representanteExistente = await models_1.Representante.findOne({
+                    where: {
+                        email,
+                        id: { [sequelize_1.Op.ne]: id }
+                    }
                 });
                 if (representanteExistente) {
                     return res.status(400).json({ message: 'Email já cadastrado' });
                 }
             }
-            const representante = await Representante_1.default.findByIdAndUpdate(id, { nome, email, telefone, regiao, comissao, dataAtualizacao: new Date() }, { new: true }).select('-senha');
+            const representante = await models_1.Representante.findByPk(id);
             if (!representante) {
                 return res.status(404).json({ message: 'Representante não encontrado' });
             }
-            res.json(representante);
+            await representante.update({
+                nome,
+                email,
+                telefone,
+                regiao,
+                comissao,
+                dataAtualizacao: new Date()
+            });
+            const representanteAtualizado = await models_1.Representante.findByPk(id, {
+                attributes: { exclude: ['senha'] }
+            });
+            res.json(representanteAtualizado);
         }
         catch (error) {
             console.error('Erro ao atualizar representante:', error);
@@ -162,10 +174,11 @@ exports.representanteController = {
     // Excluir representante
     excluir: async (req, res) => {
         try {
-            const representante = await Representante_1.default.findByIdAndDelete(req.params.id);
+            const representante = await models_1.Representante.findByPk(req.params.id);
             if (!representante) {
                 return res.status(404).json({ message: 'Representante não encontrado' });
             }
+            await representante.destroy();
             res.json({ message: 'Representante excluído com sucesso' });
         }
         catch (error) {
@@ -178,55 +191,79 @@ exports.representanteController = {
         try {
             const { id } = req.params;
             const { ativo } = req.body;
-            const representante = await Representante_1.default.findByIdAndUpdate(id, {
-                status: ativo ? 'Ativo' : 'Inativo',
-                dataAtualizacao: new Date()
-            }, { new: true }).select('-senha');
+            const representante = await models_1.Representante.findByPk(id);
             if (!representante) {
                 return res.status(404).json({ message: 'Representante não encontrado' });
             }
-            res.json(representante);
+            await representante.update({
+                status: ativo ? 'Ativo' : 'Inativo',
+                dataAtualizacao: new Date()
+            });
+            res.json({ message: 'Status do representante alterado com sucesso' });
         }
         catch (error) {
             console.error('Erro ao alterar status do representante:', error);
             res.status(500).json({ message: 'Erro ao alterar status do representante' });
         }
     },
-    // Listar clientes vinculados a um representante
-    listarClientes: async (req, res) => {
+    // Resetar senha do representante
+    resetarSenha: async (req, res) => {
         try {
             const { id } = req.params;
-            const clientes = await Cliente_1.Cliente.find({ representantes: id }).select('-usuario');
-            return res.json({ success: true, data: clientes, count: clientes.length });
-        }
-        catch (error) {
-            return res.status(500).json({ success: false, message: 'Erro ao listar clientes do representante' });
-        }
-    },
-    // Vincular clientes a um representante
-    vincularClientes: async (req, res) => {
-        try {
-            const { id } = req.params; // id do representante
-            const { clientesIds } = req.body; // array de ids de clientes
-            if (!Array.isArray(clientesIds)) {
-                return res.status(400).json({ success: false, message: 'Informe um array de clientesIds' });
+            const { novaSenha } = req.body;
+            if (!novaSenha || novaSenha.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'A nova senha deve ter pelo menos 6 caracteres.'
+                });
             }
-            await Cliente_1.Cliente.updateMany({ _id: { $in: clientesIds } }, { $addToSet: { representantes: id } });
-            return res.json({ success: true, message: 'Clientes vinculados com sucesso' });
+            const representante = await models_1.Representante.findByPk(id);
+            if (!representante) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Representante não encontrado.'
+                });
+            }
+            const salt = await bcryptjs_1.default.genSalt(10);
+            const senhaHash = await bcryptjs_1.default.hash(novaSenha, salt);
+            await representante.update({
+                senha: senhaHash,
+                dataAtualizacao: new Date()
+            });
+            return res.json({
+                success: true,
+                message: 'Senha do representante resetada com sucesso.'
+            });
         }
         catch (error) {
-            return res.status(500).json({ success: false, message: 'Erro ao vincular clientes' });
+            console.error('Erro ao resetar senha do representante:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Erro ao resetar senha do representante.'
+            });
         }
     },
-    // Desvincular cliente de um representante
-    desvincularCliente: async (req, res) => {
+    // Obter carteira de clientes do representante
+    carteiraClientes: async (req, res) => {
         try {
-            const { id, clienteId } = req.params;
-            await Cliente_1.Cliente.updateOne({ _id: clienteId }, { $pull: { representantes: id } });
-            return res.json({ success: true, message: 'Cliente desvinculado com sucesso' });
+            const { id } = req.params;
+            const clientes = await models_1.Cliente.findAll({
+                where: {
+                    representantes: id
+                }
+            });
+            return res.json({
+                success: true,
+                data: clientes,
+                count: clientes.length
+            });
         }
         catch (error) {
-            return res.status(500).json({ success: false, message: 'Erro ao desvincular cliente' });
+            console.error('Erro ao obter carteira de clientes:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Erro ao obter carteira de clientes'
+            });
         }
-    },
+    }
 };

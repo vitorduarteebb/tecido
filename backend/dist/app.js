@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
+const config_1 = require("./config");
 const database_1 = require("./config/database");
 const routes_1 = __importDefault(require("./routes"));
 const path_1 = __importDefault(require("path"));
@@ -17,11 +18,11 @@ app.use((0, morgan_1.default)('dev'));
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // Routes
 app.use('/api', routes_1.default);
-// Connect to MongoDB
+// Connect to database
 (0, database_1.connectDB)()
     .then(() => {
-    app.listen(database_1.config.port, () => {
-        console.log(`Server is running on port ${database_1.config.port}`);
+    app.listen(config_1.config.port, () => {
+        console.log(`Server is running on port ${config_1.config.port}`);
     });
 })
     .catch((error) => {
