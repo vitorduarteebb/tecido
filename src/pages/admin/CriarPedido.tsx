@@ -151,17 +151,16 @@ const CriarPedido: React.FC = () => {
       }
       
       const pedidoData = {
-        cliente: selectedCliente,
+        clienteId: selectedCliente,
         representante: user._id || user.id || '',
         itens: itens.map(item => ({
-          produto: item.produtoId || '',
+          produtoId: item.produtoId || '',
           quantidade: item.quantidade,
           valorUnitario: item.precoUnitario,
           valorTotal: item.quantidade * item.precoUnitario
         })),
         valorTotal: itens.reduce((total, item) => total + (item.quantidade * item.precoUnitario), 0),
         condicaoPagamento: condicaoPagamento as 'avista' | 'aprazo',
-        formaPagamento: formaPagamento,
         pesoTotal: itens.reduce((total, item) => total + (item.quantidade * (item.peso || 0)), 0),
         observacoes: observacoes,
         ...(condicaoPagamento === 'aprazo' ? { detalhePrazo } : {})
