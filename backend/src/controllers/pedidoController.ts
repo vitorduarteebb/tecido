@@ -20,35 +20,74 @@ const buscarNomeRepresentante = async (representanteId: string) => {
 export const pedidoController = {
   criar: async (req: Request, res: Response) => {
     try {
+      console.log('[pedidoController] Iniciando criação de pedido');
+      console.log('[pedidoController] Body recebido:', JSON.stringify(req.body, null, 2));
+      
       const { itens, condicaoPagamento, detalhePrazo, representante, clienteId } = req.body;
+      
+      console.log('[pedidoController] Dados extraídos:', {
+        itens: itens?.length,
+        condicaoPagamento,
+        detalhePrazo,
+        representante,
+        clienteId
+      });
+      
       // Validar representante
+      console.log('[pedidoController] Validando representante:', representante);
       const representanteInfo = await buscarNomeRepresentante(representante);
+      console.log('[pedidoController] Info do representante:', representanteInfo);
+      
       if (representanteInfo.tipo === 'desconhecido') {
+        console.log('[pedidoController] Representante não encontrado');
         return res.status(400).json({ success: false, message: 'Representante/Admin não encontrado' });
       }
+      
       if (!['avista', 'aprazo'].includes(condicaoPagamento)) {
+        console.log('[pedidoController] Condição de pagamento inválida:', condicaoPagamento);
         return res.status(400).json({ success: false, message: 'Condição de pagamento inválida' });
       }
+      
       if (condicaoPagamento === 'aprazo' && (!detalhePrazo || detalhePrazo.trim() === '')) {
+        console.log('[pedidoController] Detalhe do prazo obrigatório');
         return res.status(400).json({ success: false, message: 'Detalhe do prazo é obrigatório para condição a prazo' });
       }
+      
+      console.log('[pedidoController] Processando itens...');
       let valorTotalPedido = 0;
       let pesoTotalPedido = 0;
-      const itensAtualizados = await Promise.all(itens.map(async (item: any) => {
+      const itensAtualizados = await Promise.all(itens.map(async (item: any, index: number) => {
+        console.log(`[pedidoController] Processando item ${index}:`, item);
         const produto = await Produto.findByPk(item.produtoId || item.produto);
-        if (!produto) throw new Error('Produto não encontrado');
+        if (!produto) {
+          console.log(`[pedidoController] Produto não encontrado:`, item.produtoId || item.produto);
+          throw new Error('Produto não encontrado');
+        }
+        console.log(`[pedidoController] Produto encontrado:`, produto.nome);
+        
         const valorUnitario = condicaoPagamento === 'avista' ? produto.precoAVista : produto.precoAPrazo;
         const valorTotal = valorUnitario * item.quantidade;
         const pesoItem = produto.pesoPorMetro * item.quantidade;
         valorTotalPedido += valorTotal;
         pesoTotalPedido += pesoItem;
+        
+        console.log(`[pedidoController] Item ${index} processado:`, {
+          valorUnitario,
+          valorTotal,
+          pesoItem
+        });
+        
         return {
           ...item,
           valorUnitario,
           valorTotal
         };
       }));
+      
+      console.log('[pedidoController] Itens processados. Total:', valorTotalPedido, 'Peso:', pesoTotalPedido);
+      
       // Gerar número do pedido
+      console.log('[pedidoController] Gerando número do pedido...');
       const ultimoPedido = await Pedido.findOne({
         order: [['numeroPedido', 'DESC']]
       });
@@ -66,6 +105,10 @@ export const pedidoController = {
       }
       const anoAtual = new Date().getFullYear();
       const numeroPedido = `PED-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
+      
+      console.log('[pedidoController] Número do pedido gerado:', numeroPedido);
+      
+      console.log('[pedidoController] Criando pedido no banco...');
       const pedido = await Pedido.create({
         ...req.body,
         itens: itensAtualizados,
@@ -77,8 +120,12 @@ export const pedidoController = {
         clienteId,
         representanteId: representante
       });
+      
+      console.log('[pedidoController] Pedido criado com sucesso:', pedido.id);
       return res.status(201).json({ success: true, data: pedido });
     } catch (error: any) {
+      console.error('[pedidoController] Erro ao criar pedido:', error);
+      console.error('[pedidoController] Stack trace:', error.stack);
       return res.status(500).json({ success: false, message: 'Erro ao criar pedido', error: error.message });
     }
   },
