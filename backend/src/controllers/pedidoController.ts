@@ -261,7 +261,7 @@ export const pedidoController = {
       const pedidosRecentes = await Pedido.findAll({
         order: [['data', 'DESC']],
         limit: 5,
-        include: [{ model: Cliente, as: 'cliente', attributes: ['razaoSocial', 'nomeFantasia', 'nome'] }]
+        include: [{ model: Cliente, as: 'cliente', attributes: ['razaoSocial', 'nomeFantasia'] }]
       });
       
       // Ranking de representantes (simplificado)
