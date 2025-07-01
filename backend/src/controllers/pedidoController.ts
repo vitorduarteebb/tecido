@@ -4,17 +4,29 @@ import { Op, fn, col, literal } from 'sequelize';
 
 // Função auxiliar para buscar o nome do representante/admin
 const buscarNomeRepresentante = async (representanteId: string) => {
-  // Tenta buscar como representante
-  const representante = await Representante.findByPk(representanteId, { attributes: ['nome', 'email'] });
-  if (representante) {
-    return { nome: representante.nome, email: representante.email, tipo: 'representante' };
+  console.log('[buscarNomeRepresentante] Buscando representante/admin:', representanteId);
+  
+  try {
+    // Tenta buscar como representante
+    const representante = await Representante.findByPk(representanteId, { attributes: ['nome', 'email'] });
+    if (representante) {
+      console.log('[buscarNomeRepresentante] Encontrado como representante:', representante.nome);
+      return { nome: representante.nome, email: representante.email, tipo: 'representante' };
+    }
+    
+    // Tenta buscar como admin
+    const admin = await Admin.findByPk(representanteId, { attributes: ['nome', 'email'] });
+    if (admin) {
+      console.log('[buscarNomeRepresentante] Encontrado como admin:', admin.nome);
+      return { nome: admin.nome, email: admin.email, tipo: 'admin' };
+    }
+    
+    console.log('[buscarNomeRepresentante] Não encontrado como representante nem admin');
+    return { nome: 'Não encontrado', email: '', tipo: 'desconhecido' };
+  } catch (error) {
+    console.error('[buscarNomeRepresentante] Erro ao buscar:', error);
+    return { nome: 'Erro ao buscar', email: '', tipo: 'desconhecido' };
   }
-  // Tenta buscar como admin
-  const admin = await Admin.findByPk(representanteId, { attributes: ['nome', 'email'] });
-  if (admin) {
-    return { nome: admin.nome, email: admin.email, tipo: 'admin' };
-  }
-  return { nome: 'Não encontrado', email: '', tipo: 'desconhecido' };
 };
 
 export const pedidoController = {
