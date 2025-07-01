@@ -215,7 +215,7 @@ export const pedidoController = {
           data: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth },
           status: { [Op.in]: ['faturado', 'Entregue', 'entregue'] }
         }
-      });
+        });
       const faturamentoMensal = pedidosMes.reduce((acc, p) => acc + (p.valorTotal || 0), 0);
       // Pedidos pendentes
       const pedidosPendentes = await Pedido.count({ where: { status: { [Op.in]: ['pendente', 'Aguardando Aprovação'] } } });
@@ -237,17 +237,17 @@ export const pedidoController = {
       const meses: string[] = [];
       const faturamentoPorMes: number[] = [];
       for (let i = 5; i >= 0; i--) {
-        const inicio = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const fim = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+          const inicio = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const fim = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
         const pedidos = await Pedido.findAll({
           where: {
             data: { [Op.gte]: inicio, [Op.lte]: fim },
             status: { [Op.in]: ['faturado', 'Entregue', 'entregue'] }
           }
-        });
-        const total = pedidos.reduce((acc, p) => acc + (p.valorTotal || 0), 0);
-        meses.push(`${inicio.getMonth() + 1}/${inicio.getFullYear()}`);
-        faturamentoPorMes.push(total);
+          });
+          const total = pedidos.reduce((acc, p) => acc + (p.valorTotal || 0), 0);
+          meses.push(`${inicio.getMonth() + 1}/${inicio.getFullYear()}`);
+          faturamentoPorMes.push(total);
       }
       // Pedidos recentes
       const pedidosRecentes = await Pedido.findAll({

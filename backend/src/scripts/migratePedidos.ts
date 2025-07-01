@@ -61,5 +61,5 @@ if (require.main === module) {
   adicionarNumerosPedido();
 }
 
-export { adicionarNumerosPedido };
+export { adicionarNumerosPedido }; 
 */ 

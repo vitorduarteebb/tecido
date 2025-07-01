@@ -181,7 +181,7 @@ export const clienteController = {
 
       const reps: string = Array.isArray(representantes) ? representantes.join(',') : representantes;
       const cliente = await Cliente.findByPk(id);
-      
+
       if (!cliente) {
         return res.status(404).json({
           success: false,
@@ -218,7 +218,7 @@ export const clienteController = {
     try {
       const { id } = req.params;
       const cliente = await Cliente.findByPk(id);
-      
+
       if (!cliente) {
         return res.status(404).json({
           success: false,
@@ -247,7 +247,7 @@ export const clienteController = {
       const { status } = req.body;
 
       const cliente = await Cliente.findByPk(id);
-      
+
       if (!cliente) {
         return res.status(404).json({
           success: false,

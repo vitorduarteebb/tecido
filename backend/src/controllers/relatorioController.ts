@@ -8,7 +8,7 @@ export const vendasPorRepresentanteMes = async (req: Request, res: Response) => 
     const ano = parseInt(req.query.ano as string) || new Date().getFullYear();
     const pedidos = await Pedido.findAll({
       where: {
-        data: {
+          data: {
           [Op.gte]: new Date(`${ano}-01-01T00:00:00.000Z`),
           [Op.lte]: new Date(`${ano}-12-31T23:59:59.999Z`)
         }

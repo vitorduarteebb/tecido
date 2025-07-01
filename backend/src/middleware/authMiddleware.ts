@@ -47,14 +47,14 @@ export const authMiddleware = async (
           role: UserRole.CLIENTE
         };
         return next();
-      }
+        }
       // Para outros roles, apenas seguir
-      req.userId = decoded.id;
-      req.userRole = decoded.role;
-      req.user = {
-        id: decoded.id,
-        role: decoded.role
-      };
+        req.userId = decoded.id;
+        req.userRole = decoded.role;
+        req.user = {
+          id: decoded.id,
+          role: decoded.role
+        };
       next();
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
