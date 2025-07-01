@@ -202,27 +202,30 @@ async function populateDatabase() {
     // 6. Criar Movimentacoes de Estoque
     console.log('📊 Criando movimentacoes de estoque...');
     await MovimentacaoEstoque.create({
-      produto: produto1.id,
+      produtoId: produto1.id,
       tipo: 'entrada',
       quantidade: 100,
       data: new Date('2025-01-01'),
-      observacoes: 'Estoque inicial'
+      observacao: 'Estoque inicial',
+      usuario: representante1.id
     });
 
     await MovimentacaoEstoque.create({
-      produto: produto2.id,
+      produtoId: produto2.id,
       tipo: 'entrada',
       quantidade: 75,
       data: new Date('2025-01-01'),
-      observacoes: 'Estoque inicial'
+      observacao: 'Estoque inicial',
+      usuario: representante1.id
     });
 
     await MovimentacaoEstoque.create({
-      produto: produto3.id,
+      produtoId: produto3.id,
       tipo: 'entrada',
       quantidade: 50,
       data: new Date('2025-01-01'),
-      observacoes: 'Estoque inicial'
+      observacao: 'Estoque inicial',
+      usuario: representante2.id
     });
 
     console.log('✅ Banco de dados populado com sucesso!');
