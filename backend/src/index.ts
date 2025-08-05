@@ -8,7 +8,14 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178'], // Aceita todas as portas do Vite
+  origin: [
+    'http://localhost:5174', 
+    'http://localhost:5175', 
+    'http://localhost:5176', 
+    'http://localhost:5177', 
+    'http://localhost:5178',
+    'http://147.93.32.222:3000' // Produção VPS
+  ],
   credentials: true, // Required for cookies, authorization headers with HTTPS
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
