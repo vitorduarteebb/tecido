@@ -6,11 +6,9 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Divider,
   Grid,
   Card,
-  CardContent,
-  CardActions
+  CardContent
 } from '@mui/material';
 import { CloudUpload, Download } from '@mui/icons-material';
 import api from '../../services/api';
