@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Usando o proxy configurado no Vite
-const API_BASE_URL = '/api';
+// Configuração da URL da API baseada no ambiente
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'http://147.93.32.222:5000/api' 
+  : '/api';
 
 // Create axios instance with default config
 const api = axios.create({
