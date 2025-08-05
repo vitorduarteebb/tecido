@@ -34,9 +34,10 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { clienteService } from '../../services/clienteService';
 import { produtoService } from '../../services/produtoService';
-import { pedidoService } from '../../services/pedidoService';
+import { pedidoService, Pedido } from '../../services/pedidoService';
 import { Cliente } from '../../types/cliente';
 import { Produto } from '../../types/produto';
+import { useSnackbar } from 'notistack';
 
 interface ItemPedido {
   produto: Produto;
@@ -68,6 +69,7 @@ const CriarPedido: React.FC = () => {
   
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     carregarDados();
@@ -144,45 +146,39 @@ const CriarPedido: React.FC = () => {
       console.log('[CriarPedido] Selected cliente:', selectedCliente);
       console.log('[CriarPedido] Itens:', itens);
       
-      if (!user || !(user._id || user.id)) {
-        console.error('Erro ao criar pedido: Usuário não identificado');
-        alert('Erro: usuário não identificado. Faça login novamente.');
+      if (!user || !user.id) {
+        enqueueSnackbar('Usuário não autenticado', { variant: 'error' });
         return;
       }
       
-      const pedidoData = {
-        clienteId: selectedCliente,
-        representante: user._id || user.id || '',
+      const valorTotal = itens.reduce((total, item) => total + (item.quantidade * item.precoUnitario), 0);
+      const pesoTotal = itens.reduce((total, item) => total + (item.quantidade * (item.peso || 0)), 0);
+
+      const pedidoData: Omit<Pedido, '_id' | 'status' | 'data'> = {
+        cliente: selectedCliente,
+        representante: user.id || '',
         itens: itens.map(item => ({
-          produtoId: item.produtoId || '',
+          produto: item.produtoId || '',
           quantidade: item.quantidade,
           valorUnitario: item.precoUnitario,
-          valorTotal: item.quantidade * item.precoUnitario
+          valorTotal: item.quantidade * item.precoUnitario,
         })),
-        valorTotal: itens.reduce((total, item) => total + (item.quantidade * item.precoUnitario), 0),
+        valorTotal: valorTotal,
         condicaoPagamento: condicaoPagamento as 'avista' | 'aprazo',
-        pesoTotal: itens.reduce((total, item) => total + (item.quantidade * (item.peso || 0)), 0),
+        pesoTotal: pesoTotal,
         observacoes: observacoes,
-        ...(condicaoPagamento === 'aprazo' ? { detalhePrazo } : {})
+        detalhePrazo: detalhePrazo,
       };
 
       console.log('[CriarPedido] Dados do pedido a serem enviados:', JSON.stringify(pedidoData, null, 2));
 
       await pedidoService.criar(pedidoData);
-      setSnackbar({
-        open: true,
-        message: 'Pedido criado com sucesso!',
-        severity: 'success'
-      });
+      enqueueSnackbar('Pedido criado com sucesso!', { variant: 'success' });
       navigate('/admin/pedidos');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar pedido:', error);
       console.error('Detalhes do erro:', error.response?.data);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao criar pedido. Tente novamente.',
-        severity: 'error'
-      });
+      enqueueSnackbar('Erro ao criar pedido', { variant: 'error' });
     } finally {
       setLoading(false);
     }

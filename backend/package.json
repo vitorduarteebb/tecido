@@ -8,7 +8,9 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "create-admin": "ts-node src/scripts/createAdmin.ts"
+    "create-admin": "ts-node src/scripts/createAdmin.ts",
+    "import-clientes": "ts-node src/scripts/importClientes.ts",
+    "import-produtos": "ts-node src/scripts/importProdutos.ts"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +29,8 @@
     "multer": "^1.4.5-lts.1",
     "notistack": "^3.0.2",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

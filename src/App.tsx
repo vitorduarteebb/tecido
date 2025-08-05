@@ -32,6 +32,7 @@ import ListaPedidosRep from './pages/representante/ListaPedidos';
 import DetalhesPedido from './pages/admin/DetalhesPedido';
 import Orcamentos from './pages/representante/Orcamentos';
 import Relatorios from './pages/admin/Relatorios';
+import Importacao from './pages/admin/Importacao';
 
 // Components
 import PrivateRoute from './components/PrivateRoute';
@@ -141,6 +142,11 @@ function App() {
             <Route path="/admin/relatorios" element={
               <PrivateRoute requiredRole="ADMINISTRADOR">
                 <Relatorios />
+              </PrivateRoute>
+            } />
+            <Route path="/admin/importacao" element={
+              <PrivateRoute requiredRole="ADMINISTRADOR">
+                <Importacao />
               </PrivateRoute>
             } />
 

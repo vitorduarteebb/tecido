@@ -12,7 +12,6 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PedidoPDF from '../../components/PedidoPDF';
 import { clienteService } from '../../services/clienteService';
-import { Cliente } from '../../types/cliente';
 
 const statusOptions = [
   'Em Separação',
@@ -61,7 +60,7 @@ const DetalhesPedido: React.FC = () => {
             try {
               clienteCompleto = await clienteService.obterPorId(p.cliente);
             } catch (e) {
-              clienteCompleto = null; // se não encontrar, seta como null
+              clienteCompleto = ''; // se não encontrar, seta como string vazia
             }
             setLoadingCliente(false);
           }
@@ -129,23 +128,23 @@ const DetalhesPedido: React.FC = () => {
       status = statusOptions[0];
     }
     let clienteId = '';
-    if (typeof pedido.cliente === 'object') {
+    if (pedido.cliente && typeof pedido.cliente === 'object') {
       clienteId = pedido.cliente._id || pedido.cliente.id || '';
     } else {
-      clienteId = pedido.cliente;
+      clienteId = pedido.cliente || '';
     }
     let representanteId = '';
-    if (typeof pedido.representante === 'object') {
+    if (pedido.representante && typeof pedido.representante === 'object') {
       representanteId = pedido.representante._id || pedido.representante.id || '';
     } else {
-      representanteId = pedido.representante;
+      representanteId = pedido.representante || '';
     }
     const itens = (pedido.itens || []).map((item: any) => {
       let produtoId = '';
-      if (typeof item.produto === 'object') {
+      if (item.produto && typeof item.produto === 'object') {
         produtoId = item.produto._id || item.produto.id || '';
       } else {
-        produtoId = item.produto;
+        produtoId = item.produto || '';
       }
       return {
         produto: produtoId,
@@ -192,13 +191,13 @@ const DetalhesPedido: React.FC = () => {
 
   const adicionarProduto = () => {
     if (!produtoSelecionado || !editando) return;
-    const jaExiste = pedidoEdit.itens.some((item: any) => item.produto === produtoSelecionado._id || item.produto === produtoSelecionado.id);
+    const jaExiste = pedidoEdit.itens.some((item: any) => item.produto === (produtoSelecionado?._id || produtoSelecionado?.id));
     if (jaExiste) return;
     const precoAVista = typeof produtoSelecionado.precoAVista === 'number' ? produtoSelecionado.precoAVista : 0;
     const precoAPrazo = typeof produtoSelecionado.precoAPrazo === 'number' ? produtoSelecionado.precoAPrazo : 0;
     const valorUnitario = pedidoEdit.condicaoPagamento === 'avista' ? precoAVista : precoAPrazo;
     const novoItem = {
-      produto: produtoSelecionado._id || produtoSelecionado.id,
+      produto: produtoSelecionado._id || produtoSelecionado.id || '',
       quantidade: 1,
       valorUnitario,
       valorTotal: valorUnitario,
@@ -246,11 +245,11 @@ const DetalhesPedido: React.FC = () => {
               <PedidoPDF
                 numeroPedido={pedido.numeroPedido || pedido.id || pedido._id || ''}
                 cliente={pedido.cliente ? {
-                  nome: pedido.cliente.razaoSocial || pedido.cliente.nomeFantasia || '-',
-                  cnpj: pedido.cliente.cnpj || '-',
-                  endereco: pedido.cliente.endereco ? `${pedido.cliente.endereco.logradouro || ''}, ${pedido.cliente.endereco.numero || ''} ${pedido.cliente.endereco.complemento || ''}, ${pedido.cliente.endereco.bairro || ''}, ${pedido.cliente.endereco.cidade || ''} - ${pedido.cliente.endereco.estado || ''}, CEP: ${pedido.cliente.endereco.cep || ''}` : '-',
-                  telefone: pedido.cliente.telefone || pedido.cliente.celular || '-',
-                  enderecoEntrega: pedido.cliente.endereco ? `${pedido.cliente.endereco.logradouro || ''}, ${pedido.cliente.endereco.numero || ''} ${pedido.cliente.endereco.complemento || ''}, ${pedido.cliente.endereco.bairro || ''}, ${pedido.cliente.endereco.cidade || ''} - ${pedido.cliente.endereco.estado || ''}, CEP: ${pedido.cliente.endereco.cep || ''}` : '-',
+                  nome: (pedido.cliente as any).razaoSocial || (pedido.cliente as any).nomeFantasia || '-',
+                  cnpj: (pedido.cliente as any).cnpj || '-',
+                  endereco: (pedido.cliente as any).endereco ? `${(pedido.cliente as any).endereco.logradouro || ''}, ${(pedido.cliente as any).endereco.numero || ''} ${(pedido.cliente as any).endereco.complemento || ''}, ${(pedido.cliente as any).endereco.bairro || ''}, ${(pedido.cliente as any).endereco.cidade || ''} - ${(pedido.cliente as any).endereco.estado || ''}, CEP: ${(pedido.cliente as any).endereco.cep || ''}` : '-',
+                  telefone: (pedido.cliente as any).telefone || (pedido.cliente as any).celular || '-',
+                  enderecoEntrega: (pedido.cliente as any).endereco ? `${(pedido.cliente as any).endereco.logradouro || ''}, ${(pedido.cliente as any).endereco.numero || ''} ${(pedido.cliente as any).endereco.complemento || ''}, ${(pedido.cliente as any).endereco.bairro || ''}, ${(pedido.cliente as any).endereco.cidade || ''} - ${(pedido.cliente as any).endereco.estado || ''}, CEP: ${(pedido.cliente as any).endereco.cep || ''}` : '-',
                 } : {
                   nome: '-',
                   cnpj: '-',
@@ -258,17 +257,17 @@ const DetalhesPedido: React.FC = () => {
                   telefone: '-',
                   enderecoEntrega: '-',
                 }}
-                produtos={(pedido.itens || []).map((item: any) => {
+                produtos={(pedido?.itens || []).map((item: any) => {
                   let produtoObj = item.produto;
                   if (typeof item.produto === 'string') {
-                    produtoObj = produtos.find(p => p._id === item.produto || p.id === item.produto || p.nome === item.produto) || { nome: item.produto };
+                    produtoObj = produtos?.find(p => p?._id === item.produto || p?.id === item.produto || p?.nome === item.produto) || { nome: item.produto };
                   }
                   return {
-                    id: produtoObj._id || produtoObj.id || item.produto,
-                    nome: produtoObj.nome || '-',
-                    codigo: produtoObj.codigo || '-',
-                    referencia: produtoObj.codigo || '-',
-                    imagemUrl: produtoObj.imagem || undefined,
+                    id: produtoObj?._id || produtoObj?.id || item.produto,
+                    nome: produtoObj?.nome || '-',
+                    codigo: produtoObj?.codigo || '-',
+                    referencia: produtoObj?.codigo || '-',
+                    imagemUrl: produtoObj?.imagem || undefined,
                     quantidade: item.quantidade,
                     valorUnitario: item.valorUnitario,
                     subtotal: item.quantidade * item.valorUnitario,

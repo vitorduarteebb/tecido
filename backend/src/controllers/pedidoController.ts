@@ -35,19 +35,20 @@ export const pedidoController = {
       console.log('[pedidoController] Iniciando criação de pedido');
       console.log('[pedidoController] Body recebido:', JSON.stringify(req.body, null, 2));
       
-      const { itens, condicaoPagamento, detalhePrazo, representante, clienteId } = req.body;
+      const { itens, condicaoPagamento, detalhePrazo, representante, representanteId, clienteId } = req.body;
+      const idRepresentante = representanteId || representante;
       
       console.log('[pedidoController] Dados extraídos:', {
         itens: itens?.length,
         condicaoPagamento,
         detalhePrazo,
-        representante,
+        representante: idRepresentante,
         clienteId
       });
       
       // Validar representante
-      console.log('[pedidoController] Validando representante:', representante);
-      const representanteInfo = await buscarNomeRepresentante(representante);
+      console.log('[pedidoController] Validando representante:', idRepresentante);
+      const representanteInfo = await buscarNomeRepresentante(idRepresentante);
       console.log('[pedidoController] Info do representante:', representanteInfo);
       
       if (representanteInfo.tipo === 'desconhecido') {
@@ -130,7 +131,7 @@ export const pedidoController = {
         detalhePrazo: condicaoPagamento === 'aprazo' ? detalhePrazo : undefined,
         numeroPedido,
         clienteId,
-        representanteId: representante
+        representanteId: idRepresentante
       });
       
       console.log('[pedidoController] Pedido criado com sucesso:', pedido.id);

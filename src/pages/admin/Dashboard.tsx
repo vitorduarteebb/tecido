@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
-  Paper,
   Typography,
   Card,
   CardContent,
@@ -29,7 +28,6 @@ import {
   ShoppingCart as ShoppingCartIcon,
   LocalShipping as LocalShippingIcon,
   Warning as WarningIcon,
-  Person as PersonIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';

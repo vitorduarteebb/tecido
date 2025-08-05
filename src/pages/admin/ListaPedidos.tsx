@@ -510,7 +510,7 @@ const ListaPedidos: React.FC = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs 
               value={tabValue} 
-              onChange={(e, newValue) => setTabValue(newValue)}
+              onChange={(_, newValue) => setTabValue(newValue)}
               variant="scrollable"
               scrollButtons="auto"
             >

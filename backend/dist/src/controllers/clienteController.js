@@ -89,10 +89,18 @@ exports.clienteController = {
                 senha: hashedPassword,
                 role: 'CLIENTE'
             });
-            // Novo: verifica se veio representanteId para vincular
+            // NOVA FUNCIONALIDADE: Se o usuário logado for um representante, 
+            // automaticamente atribui o cliente a ele
             let representantes = '';
-            if (req.body.representanteId) {
+            if (req.user && req.user.role === 'REPRESENTANTE') {
+                // Representante logado - atribui automaticamente a ele
+                representantes = req.user.id;
+                console.log(`[clienteController] Representante ${req.user.id} criando cliente - atribuindo automaticamente`);
+            }
+            else if (req.body.representanteId) {
+                // Admin especificando representante
                 representantes = req.body.representanteId;
+                console.log(`[clienteController] Admin especificando representante: ${req.body.representanteId}`);
             }
             const reps = Array.isArray(representantes) ? representantes.join(',') : representantes;
             // Cria o cliente associado ao usuário

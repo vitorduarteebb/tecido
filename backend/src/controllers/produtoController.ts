@@ -32,11 +32,15 @@ export const produtoController = {
 
   async criar(req: Request, res: Response) {
     try {
-      const { precoAVista, precoAPrazo, pesoPorMetro } = req.body;
+      const { precoAVista, precoAPrazo, pesoPorMetro, imagem } = req.body;
       if (precoAVista === undefined || precoAPrazo === undefined || pesoPorMetro === undefined) {
         return res.status(400).json({ success: false, message: 'Campos obrigatórios: precoAVista, precoAPrazo, pesoPorMetro' });
       }
-      const novoProduto = await Produto.create(req.body);
+      let imagemFinal = imagem;
+      if (imagem && !imagem.startsWith('/uploads/')) {
+        imagemFinal = `/uploads/${imagem}`;
+      }
+      const novoProduto = await Produto.create({ ...req.body, imagem: imagemFinal });
       return res.status(201).json({ success: true, data: novoProduto, message: 'Produto cadastrado com sucesso' });
     } catch (error) {
       console.error('Erro ao criar produto:', error);
@@ -47,7 +51,7 @@ export const produtoController = {
   async atualizar(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { precoAVista, precoAPrazo, pesoPorMetro } = req.body;
+      const { precoAVista, precoAPrazo, pesoPorMetro, imagem } = req.body;
       if (precoAVista === undefined || precoAPrazo === undefined || pesoPorMetro === undefined) {
         return res.status(400).json({ success: false, message: 'Campos obrigatórios: precoAVista, precoAPrazo, pesoPorMetro' });
       }
@@ -55,7 +59,11 @@ export const produtoController = {
       if (!produto) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado' });
       }
-      const produtoAtualizado = await produto.update(req.body);
+      let imagemFinal = imagem;
+      if (imagem && !imagem.startsWith('/uploads/')) {
+        imagemFinal = `/uploads/${imagem}`;
+      }
+      const produtoAtualizado = await produto.update({ ...req.body, imagem: imagemFinal });
       return res.json({ success: true, data: produtoAtualizado, message: 'Produto atualizado com sucesso' });
     } catch (error) {
       console.error('Erro ao atualizar produto:', error);

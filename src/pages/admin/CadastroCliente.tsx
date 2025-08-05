@@ -79,14 +79,6 @@ const estadosBrasileiros = [
   'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
 
-const condicoesPagamento = [
-  '30 dias',
-  '30/60 dias',
-  '30/60/90 dias',
-  'À vista',
-  'Outros'
-];
-
 interface Step {
   label: string;
   content: JSX.Element;

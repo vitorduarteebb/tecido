@@ -13,9 +13,6 @@ import {
   ShoppingCart,
   People,
   Inventory,
-  Group as GroupIcon,
-  AddShoppingCart,
-  AttachMoney,
   Receipt,
 } from '@mui/icons-material';
 
@@ -77,7 +74,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   const navigationItems = getNavigationItems();
   const currentIndex = navigationItems.findIndex(item => item.path === location.pathname);
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     const item = navigationItems[newValue];
     if (item) {
       navigate(item.path);
@@ -116,7 +113,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           },
         }}
       >
-        {navigationItems.map((item, index) => (
+        {navigationItems.map((item) => (
           <BottomNavigationAction
             key={item.path}
             label={item.label}

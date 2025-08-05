@@ -36,6 +36,7 @@ import {
   Receipt,
   AccountCircle,
   Notifications,
+  CloudUpload,
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { setCredentials, logout } from '../store/slices/authSlice';
@@ -74,6 +75,7 @@ const menuItems: MenuItems = {
     { text: 'Representantes', icon: <GroupIcon />, path: '/admin/representantes' },
     { text: 'Clientes', icon: <People />, path: '/admin/clientes' },
     { text: 'Pedidos', icon: <ShoppingCart />, path: '/admin/pedidos' },
+    { text: 'Importação', icon: <CloudUpload />, path: '/admin/importacao' },
     { text: 'Relatórios', icon: <AttachMoney />, path: '/admin/relatorios' },
   ],
   representante: [

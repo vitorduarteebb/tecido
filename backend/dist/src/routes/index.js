@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const path_1 = __importDefault(require("path"));
 const authRoutes_1 = __importDefault(require("./authRoutes"));
 const representanteRoutes_1 = __importDefault(require("./representanteRoutes"));
 const clienteRoutes_1 = __importDefault(require("./clienteRoutes"));
@@ -44,6 +45,7 @@ const produtoRoutes_1 = __importDefault(require("./produtoRoutes"));
 const uploadRoutes_1 = __importDefault(require("./uploadRoutes"));
 const pedidoRoutes_1 = __importDefault(require("./pedidoRoutes"));
 const orcamentoRoutes_1 = __importDefault(require("./orcamentoRoutes"));
+const importRoutes_1 = __importDefault(require("./importRoutes"));
 const relatorioController = __importStar(require("../controllers/relatorioController"));
 const router = express_1.default.Router();
 // Rotas de autenticação
@@ -60,8 +62,19 @@ router.use('/upload', uploadRoutes_1.default);
 router.use('/pedidos', pedidoRoutes_1.default);
 // Rotas de orçamentos
 router.use('/orcamentos', orcamentoRoutes_1.default);
+// Rotas de importação
+router.use('/import', importRoutes_1.default);
 // Relatórios
 router.get('/relatorios/vendas-representante-mes', relatorioController.vendasPorRepresentanteMes);
 router.get('/relatorios/vendas-produto-representante', relatorioController.vendasPorPeriodoProdutoRepresentante);
 router.get('/relatorios/clientes-ranking', relatorioController.rankingClientes);
+// Rota para download do template de produtos
+router.get('/template-produtos', (req, res) => {
+    const templatePath = path_1.default.join(__dirname, '../../template_produtos.xlsx');
+    res.download(templatePath, 'template_produtos.xlsx', (err) => {
+        if (err) {
+            res.status(404).json({ error: 'Template não encontrado' });
+        }
+    });
+});
 exports.default = router;
